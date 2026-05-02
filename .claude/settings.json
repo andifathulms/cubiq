@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/andifathulmukminin/Documents/Project/**)",
+      "Bash(npx create-next-app@latest cubiq --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git)",
+      "Bash(cp cubiq/CLAUDE.md /tmp/CLAUDE.md)",
+      "Bash(cp cubiq/PRD.md /tmp/PRD.md)",
+      "Bash(mv cubiq/CLAUDE.md /tmp/CLAUDE.md)",
+      "Bash(mv cubiq/PRD.md /tmp/PRD.md)"
+    ]
+  }
+}
