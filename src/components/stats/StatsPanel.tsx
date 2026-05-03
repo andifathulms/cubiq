@@ -1,4 +1,5 @@
 'use client'
+import { useState, useEffect } from 'react'
 import { useCubiqStore } from '@/store'
 import { formatTime, getEffectiveTime } from '@/lib/stats'
 
@@ -25,6 +26,9 @@ function StatRow({ label, value, highlight }: StatRowProps) {
 }
 
 export function StatsPanel() {
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => setHydrated(true), [])
+
   const { getStats, getActiveSession } = useCubiqStore()
   const stats = getStats()
   const session = getActiveSession()
@@ -35,6 +39,25 @@ export function StatsPanel() {
 
   // Is last solve a PB?
   const isPB = stats.best !== null && lastTime !== null && lastTime === stats.best && solves.length > 1
+
+  if (!hydrated) {
+    return (
+      <div className="flex flex-col gap-0">
+        <h3
+          className="text-xs font-display uppercase tracking-widest mb-2 px-1"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          Statistics
+        </h3>
+        {['current','best','ao5','ao12','ao50','ao100','mean','count'].map(label => (
+          <div key={label} className="flex justify-between items-baseline py-1.5 border-b" style={{ borderColor: 'var(--border)' }}>
+            <span className="text-xs font-display uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{label}</span>
+            <span className="text-sm font-mono tabular-nums" style={{ color: 'var(--text-primary)' }}>—</span>
+          </div>
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-0">

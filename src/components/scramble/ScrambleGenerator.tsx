@@ -8,8 +8,8 @@ import { pushScrambleHistory } from '@/lib/storage'
 export function ScrambleGenerator() {
   const { currentScramble, setCurrentScramble, timerState } = useCubiqStore()
 
-  const fetchScramble = useCallback(async () => {
-    const scramble = await generateScramble('333')
+  const fetchScramble = useCallback(() => {
+    const scramble = generateScramble('333')
     setCurrentScramble(scramble)
     pushScrambleHistory(scramble)
   }, [setCurrentScramble])
