@@ -1,0 +1,6 @@
+fastapi==0.128.8
+kociemba==1.2.1
+pycuber==0.2.2
+pydantic==2.13.3
+pydantic_core==2.46.3
+uvicorn==0.39.0
