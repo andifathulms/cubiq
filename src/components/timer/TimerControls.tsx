@@ -2,6 +2,24 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useCubiqStore } from '@/store'
 
+function playBeep() {
+  try {
+    const ctx = new AudioContext()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    gain.gain.setValueAtTime(0.3, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12)
+    osc.frequency.value = 880
+    osc.start()
+    osc.stop(ctx.currentTime + 0.12)
+    osc.addEventListener('ended', () => ctx.close())
+  } catch {
+    // AudioContext unavailable
+  }
+}
+
 const HOLD_DURATION = 300
 const DISPLAY_UPDATE_INTERVAL = 10
 
@@ -36,6 +54,7 @@ export function TimerControls() {
         scramble: currentScramble,
         comment: '',
       })
+      if (settings.voice_alerts) playBeep()
       return
     }
 

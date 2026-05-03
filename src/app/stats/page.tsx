@@ -1,4 +1,5 @@
 'use client'
+import { useState, useEffect } from 'react'
 import { Navbar } from '@/components/layout/Navbar'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { MobileNav } from '@/components/layout/MobileNav'
@@ -8,6 +9,7 @@ import { DailyHeatmap } from '@/components/stats/DailyHeatmap'
 import { SessionComparison } from '@/components/stats/SessionComparison'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { useCubiqStore } from '@/store'
+import { computeStats, formatTime } from '@/lib/stats'
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
@@ -20,9 +22,29 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   )
 }
 
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      className="flex flex-col gap-1 px-4 py-3 rounded-2xl"
+      style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}
+    >
+      <span className="text-xs font-display uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+        {label}
+      </span>
+      <span className="text-lg font-mono font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+        {value}
+      </span>
+    </div>
+  )
+}
+
 export default function StatsPage() {
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => setHydrated(true), [])
+
   const { getActiveSession } = useCubiqStore()
   const session = getActiveSession()
+  const stats = hydrated ? computeStats(session?.solves ?? []) : null
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -39,8 +61,18 @@ export default function StatsPage() {
                 Statistics
               </h1>
               <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                {session?.name} — {session?.solves.length ?? 0} solves
+                {hydrated ? `${session?.name} — ${session?.solves.length ?? 0} solves` : '—'}
               </p>
+            </div>
+
+            {/* Summary cards */}
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+              <StatCard label="Best" value={stats ? formatTime(stats.best) : '—'} />
+              <StatCard label="ao5"  value={stats ? formatTime(stats.ao5)  : '—'} />
+              <StatCard label="ao12" value={stats ? formatTime(stats.ao12) : '—'} />
+              <StatCard label="ao50" value={stats ? formatTime(stats.ao50) : '—'} />
+              <StatCard label="Mean" value={stats?.mean != null ? formatTime(Math.round(stats.mean)) : '—'} />
+              <StatCard label="Count" value={stats ? String(stats.count) : '—'} />
             </div>
 
             {/* Time trend */}

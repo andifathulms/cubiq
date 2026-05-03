@@ -6,13 +6,14 @@ import { generateScramble } from '@/lib/cubing'
 import { pushScrambleHistory } from '@/lib/storage'
 
 export function ScrambleGenerator() {
+  const puzzle = useCubiqStore(s => s.sessions.find(sess => sess.id === s.activeSessionId)?.puzzle ?? '333')
   const { currentScramble, setCurrentScramble, timerState } = useCubiqStore()
 
   const fetchScramble = useCallback(() => {
-    const scramble = generateScramble('333')
+    const scramble = generateScramble(puzzle)
     setCurrentScramble(scramble)
     pushScrambleHistory(scramble)
-  }, [setCurrentScramble])
+  }, [setCurrentScramble, puzzle])
 
   useEffect(() => {
     if (!currentScramble) fetchScramble()
