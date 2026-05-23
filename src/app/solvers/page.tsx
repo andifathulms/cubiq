@@ -4,6 +4,7 @@ import { Navbar } from '@/components/layout/Navbar'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { MobileNav } from '@/components/layout/MobileNav'
 import { MLSolverCard } from '@/components/solvers/MLSolverCard'
+import { MDPPanel } from '@/components/solvers/MDPPanel'
 
 // Solver loads cubing.js & runs IDA* — keep off SSR
 const CrossSolver = dynamic(
@@ -40,6 +41,8 @@ export default function SolversPage() {
             <CrossSolver />
 
             <MLSolverCard />
+
+            <MDPPanel />
           </div>
         </main>
       </div>
