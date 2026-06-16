@@ -40,10 +40,12 @@ export function MLSolverCard() {
   const [solveError, setSolveError] = useState<string | null>(null)
 
   async function checkHealth() {
+    const url = urlInput.trim()
+    updateSettings({ ml_service_url: url })
     setStatus('checking')
     setServiceInfo(null)
     try {
-      const res = await fetch(`${settings.ml_service_url}/health`, {
+      const res = await fetch(`${url}/health`, {
         signal: AbortSignal.timeout(4000),
       })
       if (res.ok) {
@@ -68,15 +70,17 @@ export function MLSolverCard() {
     setSolveResult(null)
     setSolveError(null)
     try {
-      const res = await fetch(`${settings.ml_service_url}/solve`, {
+      const res = await fetch(`${urlInput.trim()}/solve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ state: currentScramble, method: 'kociemba' }),
         signal: AbortSignal.timeout(15000),
       })
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.detail ?? 'Solve failed')
+        const text = await res.text()
+        let detail = 'Solve failed'
+        try { detail = JSON.parse(text).detail ?? detail } catch { /* non-JSON error body */ }
+        throw new Error(detail)
       }
       setSolveResult(await res.json())
     } catch (e) {

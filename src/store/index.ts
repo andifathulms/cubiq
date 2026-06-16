@@ -10,7 +10,7 @@ const DEFAULT_SETTINGS: Settings = {
   timer_precision: 'centiseconds',
   voice_alerts: false,
   cube_preview_visible: true,
-  ml_service_url: process.env.NEXT_PUBLIC_ML_SERVICE_URL ?? 'http://localhost:8000',
+  ml_service_url: process.env.NEXT_PUBLIC_ML_SERVICE_URL ?? 'http://127.0.0.1:8001',
 }
 
 function makeDefaultSession(): Session {

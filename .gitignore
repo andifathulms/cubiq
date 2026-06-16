@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# cubiq-ml (python service)
+cubiq-ml/.venv
+cubiq-ml/__pycache__
+cubiq-ml/**/__pycache__
+cubiq-ml/mdp/checkpoint

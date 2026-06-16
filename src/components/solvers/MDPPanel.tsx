@@ -98,7 +98,7 @@ function PolicyBar({ move, prob }: { move: string; prob: number }) {
 
 export function MDPPanel() {
   const { settings, currentScramble } = useCubiqStore()
-  const baseUrl = settings.ml_service_url
+  const baseUrl = settings.ml_service_url.trim()
 
   const [status, setStatus] = useState<TrainStatus | null>(null)
   const [metrics, setMetrics] = useState<EpochMetric[]>([])
