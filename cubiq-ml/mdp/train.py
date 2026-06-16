@@ -132,7 +132,17 @@ def compute_targets(
         v_all, _ = model(x)
         v_all = v_all.cpu().numpy().reshape(n, N_ACTIONS)  # (n, 18)
 
-    best_actions = v_all.argmin(axis=1)                    # greedy wrt value
+    # argmin breaks ties by always returning the first index. Early in training
+    # the untrained value head outputs near-identical values for every neighbour,
+    # so plain argmin collapses every target onto action 0 ('U') and the policy
+    # head quickly mode-collapses to always predict it. Break ties randomly
+    # among all near-minimal actions instead.
+    rounded = np.round(v_all, decimals=4)
+    row_min = rounded.min(axis=1, keepdims=True)
+    is_min = rounded == row_min
+    tie_break = np.where(is_min, np.random.random(v_all.shape), -np.inf)
+    best_actions = tie_break.argmax(axis=1)
+
     target_values = 1.0 + v_all[np.arange(n), best_actions]
     return target_values.astype(np.float32), best_actions.astype(np.int64)
 
