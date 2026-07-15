@@ -4,9 +4,10 @@ import { useEffect, useRef } from 'react'
 interface Props {
   scramble: string
   interactive?: boolean
+  puzzle?: string   // TwistyPlayer puzzle id, e.g. '3x3x3' | '4x4x4'
 }
 
-export function CubePreview3D({ scramble, interactive = true }: Props) {
+export function CubePreview3D({ scramble, interactive = true, puzzle = '3x3x3' }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -21,7 +22,7 @@ export function CubePreview3D({ scramble, interactive = true }: Props) {
 
       const player = document.createElement('twisty-player') as unknown as HTMLElement & Record<string, unknown>
       player.setAttribute('alg', scramble)
-      player.setAttribute('puzzle', '3x3x3')
+      player.setAttribute('puzzle', puzzle)
       player.setAttribute('visualization', '3D')
       player.setAttribute('control-panel', interactive ? 'bottom-row' : 'none')
       player.setAttribute('background', 'none')
@@ -33,7 +34,7 @@ export function CubePreview3D({ scramble, interactive = true }: Props) {
     }
 
     mount()
-  }, [scramble, interactive])
+  }, [scramble, interactive, puzzle])
 
   return (
     <div

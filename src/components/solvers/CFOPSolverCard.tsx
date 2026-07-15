@@ -51,6 +51,10 @@ function CopyButton({ text }: { text: string }) {
 
 export function CFOPSolverCard() {
   const { settings, currentScramble } = useCubiqStore()
+  const activePuzzle = useCubiqStore(
+    s => s.sessions.find(sess => sess.id === s.activeSessionId)?.puzzle ?? '333'
+  )
+  const is3x3 = activePuzzle === '333'
   const [face, setFace] = useState<(typeof FACE_OPTIONS)[number]>('best')
   const [solving, setSolving] = useState(false)
   const [result, setResult] = useState<CFOPResult | null>(null)
@@ -139,7 +143,7 @@ export function CFOPSolverCard() {
 
             <button
               onClick={handleSolve}
-              disabled={solving || !currentScramble}
+              disabled={solving || !currentScramble || !is3x3}
               className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
               style={{
                 background: 'var(--bg-elevated)',
@@ -154,7 +158,14 @@ export function CFOPSolverCard() {
         </div>
       </div>
 
-      {!currentScramble && (
+      {!is3x3 && (
+        <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+          CFOP staging works on 3×3 scrambles — switch to a 3×3 session,
+          or use the 4×4 solver below.
+        </p>
+      )}
+
+      {is3x3 && !currentScramble && (
         <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
           Generate a scramble on the Timer page first.
         </p>

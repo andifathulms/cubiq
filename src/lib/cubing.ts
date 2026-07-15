@@ -66,6 +66,19 @@ const CONFIGS: Record<string, MoveConfig> = {
   },
 }
 
+// PuzzleType -> cubing.js TwistyPlayer puzzle id
+export const TWISTY_PUZZLE_IDS: Record<string, string> = {
+  '222': '2x2x2',
+  '333': '3x3x3',
+  '444': '4x4x4',
+  '555': '5x5x5',
+  'pyram': 'pyraminx',
+  'skewb': 'skewb',
+  'minx': 'megaminx',
+  'sq1': 'square1',
+  'clock': 'clock',
+}
+
 export function generateScramble(puzzle: string = '333'): string {
   if (puzzle === 'sq1') return generateSq1()
 

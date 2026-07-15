@@ -195,6 +195,10 @@ function SolutionRow({ sol, onAnimate }: { sol: CrossSolution; onAnimate: (alg: 
 
 export function CrossSolver() {
   const { currentScramble } = useCubiqStore()
+  const activePuzzle = useCubiqStore(
+    s => s.sessions.find(sess => sess.id === s.activeSessionId)?.puzzle ?? '333'
+  )
+  const is3x3 = activePuzzle === '333'
   const [solutions, setSolutions] = useState<CrossSolution[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -216,12 +220,26 @@ export function CrossSolver() {
     }
   }, [])
 
-  // Auto-solve when scramble changes
+  // Auto-solve when scramble changes (3x3 sessions only)
   useEffect(() => {
-    if (currentScramble && currentScramble !== lastSolvedScramble) {
+    if (is3x3 && currentScramble && currentScramble !== lastSolvedScramble) {
       solve(currentScramble)
     }
-  }, [currentScramble, lastSolvedScramble, solve])
+  }, [currentScramble, lastSolvedScramble, solve, is3x3])
+
+  if (!is3x3) {
+    return (
+      <div className="flex flex-col gap-2">
+        <h2 className="text-lg font-bold font-display" style={{ color: 'var(--text-primary)' }}>
+          Cross Solver
+        </h2>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+          The cross solver works on 3×3 scrambles — switch to a 3×3 session,
+          or use the 4×4 solver below for big-cube scrambles.
+        </p>
+      </div>
+    )
+  }
 
   function handleAnimate(alg: string) {
     setAnim({ setup: currentScramble, alg })

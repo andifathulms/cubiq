@@ -12,6 +12,7 @@ import { ScrambleDisplay } from '@/components/scramble/ScrambleDisplay'
 import { ScrambleGenerator } from '@/components/scramble/ScrambleGenerator'
 import { useCubiqStore } from '@/store'
 import { formatTime, getEffectiveTime } from '@/lib/stats'
+import { TWISTY_PUZZLE_IDS } from '@/lib/cubing'
 
 const CubePreview3D = dynamic(
   () => import('@/components/scramble/CubePreview3D').then(m => m.CubePreview3D),
@@ -70,6 +71,9 @@ function SolvePenaltyBar() {
 
 export default function TimerPage() {
   const { currentScramble, settings, updateSettings, timerState } = useCubiqStore()
+  const activePuzzle = useCubiqStore(
+    s => s.sessions.find(sess => sess.id === s.activeSessionId)?.puzzle ?? '333'
+  )
   const [isHydrated, setIsHydrated] = useState(false)
   useEffect(() => setIsHydrated(true), [])
 
@@ -112,7 +116,11 @@ export default function TimerPage() {
             >
               {settings.cube_preview_visible ? (
                 <div className="glass rounded-2xl p-2 relative group">
-                  <CubePreview3D scramble={currentScramble} interactive />
+                  <CubePreview3D
+                    scramble={currentScramble}
+                    interactive
+                    puzzle={TWISTY_PUZZLE_IDS[activePuzzle] ?? '3x3x3'}
+                  />
                   <button
                     onClick={() => updateSettings({ cube_preview_visible: false })}
                     className="absolute top-1 right-1 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
