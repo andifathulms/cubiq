@@ -45,3 +45,6 @@ cubiq-ml/.venv
 cubiq-ml/__pycache__
 cubiq-ml/**/__pycache__
 cubiq-ml/mdp/checkpoint
+
+# local solve exports
+/exports/
