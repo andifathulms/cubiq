@@ -10,6 +10,7 @@ from cube import scramble_to_facelet
 from solver import solve_all_crosses
 from cfop import solve_cfop, solve_xcross, FACES
 from cfop444 import solve_444
+from solver222 import solve_222, get_table as warm_222_table
 from f2l import warm_tables
 from mdp import train as mdp_train
 from mdp.env import CubeEnv
@@ -21,8 +22,9 @@ app = FastAPI(title="cubiq-ml", version="0.1.0")
 @app.on_event("startup")
 def _startup():
     mdp_train.load_persisted_status()
-    # Build/load the F2L distance tables off the request path
+    # Build/load the F2L and 2x2 distance tables off the request path
     threading.Thread(target=warm_tables, daemon=True).start()
+    threading.Thread(target=warm_222_table, daemon=True).start()
 
 _mdp_env = CubeEnv()
 
@@ -174,6 +176,24 @@ def solve_444_endpoint(req: Solve444Request):
         return solve_444(req.state, cfop_face=face, try_xcross=req.try_xcross)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+# ── /solve/222 ────────────────────────────────────────────────────────────────
+
+class Solve222Request(BaseModel):
+    state: str                      # 2x2 scramble (any outer faces)
+    max_alternatives: int = 3
+
+
+@app.post("/solve/222")
+def solve_222_endpoint(req: Solve222Request):
+    t0 = time.perf_counter()
+    try:
+        result = solve_222(req.state, max_alternatives=max(1, min(req.max_alternatives, 5)))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    result['time_ms'] = (time.perf_counter() - t0) * 1000
+    return result
 
 
 # ── /mdp/* ────────────────────────────────────────────────────────────────────
