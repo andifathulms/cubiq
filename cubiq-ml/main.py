@@ -8,6 +8,8 @@ import kociemba
 
 from cube import scramble_to_facelet
 from solver import solve_all_crosses
+from cfop import solve_cfop, FACES
+from f2l import warm_tables
 from mdp import train as mdp_train
 from mdp.env import CubeEnv
 from mdp.agent import greedy_solve, mcts_solve, policy_distribution
@@ -18,6 +20,8 @@ app = FastAPI(title="cubiq-ml", version="0.1.0")
 @app.on_event("startup")
 def _startup():
     mdp_train.load_persisted_status()
+    # Build/load the F2L distance tables off the request path
+    threading.Thread(target=warm_tables, daemon=True).start()
 
 _mdp_env = CubeEnv()
 
@@ -101,6 +105,35 @@ def solve_cross(req: CrossSolveRequest):
         **result,
         time_ms=(time.perf_counter() - t0) * 1000,
     )
+
+
+# ── /solve/cfop ───────────────────────────────────────────────────────────────
+
+class CFOPSolveRequest(BaseModel):
+    state: str                      # scramble string (WCA notation)
+    face: str = 'best'              # D | U | F | B | R | L | best
+    beam_width: int = 4
+    cross_alternatives: int = 2
+    pair_variants: int = 2
+    try_xcross: bool = True
+
+
+@app.post("/solve/cfop")
+def solve_cfop_endpoint(req: CFOPSolveRequest):
+    face = req.face if req.face == 'best' else req.face.upper()
+    if face != 'best' and face not in FACES:
+        raise HTTPException(status_code=422, detail=f"Invalid face '{req.face}'")
+    try:
+        return solve_cfop(
+            req.state,
+            face=face,
+            beam_width=max(1, min(req.beam_width, 8)),
+            cross_alternatives=max(1, min(req.cross_alternatives, 5)),
+            pair_variants=max(1, min(req.pair_variants, 3)),
+            try_xcross=req.try_xcross,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 # ── /mdp/* ────────────────────────────────────────────────────────────────────
