@@ -44,15 +44,18 @@ function CopyButton({ text }: { text: string }) {
 }
 
 function SolutionRow({ sol, onAnimate }: { sol: CrossSolution; onAnimate: (sol: CrossSolution) => void }) {
+  const [showAlts, setShowAlts] = useState(false)
   const moveStr = sol.moves.join(' ')
   const prefix = sol.rotation ? sol.rotation + ' ' : ''
   const display = prefix + (moveStr || '(already solved)')
+  const alts = sol.alternatives ?? []
 
   return (
     <div
-      className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+      className="flex flex-col px-3 py-2.5 rounded-xl"
       style={{ background: FACE_BG[sol.face] }}
     >
+    <div className="flex items-center gap-3">
       <span
         className="w-5 h-5 flex items-center justify-center rounded text-xs font-bold font-display shrink-0"
         style={{ background: FACE_COLORS[sol.face], color: '#000', opacity: 0.9 }}
@@ -86,6 +89,26 @@ function SolutionRow({ sol, onAnimate }: { sol: CrossSolution; onAnimate: (sol: 
       </button>
 
       <CopyButton text={display} />
+    </div>
+
+    {alts.length > 0 && (
+      <button
+        onClick={() => setShowAlts(v => !v)}
+        className="self-start mt-1 text-[11px] font-mono transition-colors"
+        style={{ color: 'var(--text-muted)' }}
+      >
+        {showAlts ? '− hide' : `+ ${alts.length} more optimal`}
+      </button>
+    )}
+
+    {showAlts && alts.map((alt, i) => (
+      <div key={i} className="flex items-center gap-2 mt-1 pl-8">
+        <span className="font-mono text-xs break-all" style={{ color: 'var(--text-secondary)' }}>
+          {prefix + alt.join(' ')}
+        </span>
+        <CopyButton text={prefix + alt.join(' ')} />
+      </div>
+    ))}
     </div>
   )
 }
