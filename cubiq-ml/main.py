@@ -9,6 +9,7 @@ import kociemba
 from cube import scramble_to_facelet
 from solver import solve_all_crosses
 from cfop import solve_cfop, solve_xcross, FACES
+from cfop444 import solve_444
 from f2l import warm_tables
 from mdp import train as mdp_train
 from mdp.env import CubeEnv
@@ -152,6 +153,25 @@ def solve_xcross_endpoint(req: XCrossSolveRequest):
     try:
         return solve_xcross(req.state, face=face,
                             max_solutions=max(1, min(req.max_solutions, 3)))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+# ── /solve/444 ────────────────────────────────────────────────────────────────
+
+class Solve444Request(BaseModel):
+    state: str                      # 4x4 scramble (WCA notation: R, Rw, 2R...)
+    cfop_face: str = 'D'            # cross face for the 3x3 stage ('best' allowed)
+    try_xcross: bool = True
+
+
+@app.post("/solve/444")
+def solve_444_endpoint(req: Solve444Request):
+    face = req.cfop_face if req.cfop_face == 'best' else req.cfop_face.upper()
+    if face != 'best' and face not in FACES:
+        raise HTTPException(status_code=422, detail=f"Invalid face '{req.cfop_face}'")
+    try:
+        return solve_444(req.state, cfop_face=face, try_xcross=req.try_xcross)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
