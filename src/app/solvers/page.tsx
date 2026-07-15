@@ -4,6 +4,7 @@ import { Navbar } from '@/components/layout/Navbar'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { MobileNav } from '@/components/layout/MobileNav'
 import { MLSolverCard } from '@/components/solvers/MLSolverCard'
+import { CFOPSolverCard } from '@/components/solvers/CFOPSolverCard'
 import { MDPPanel } from '@/components/solvers/MDPPanel'
 
 // Solver loads cubing.js & runs IDA* — keep off SSR
@@ -39,6 +40,8 @@ export default function SolversPage() {
             </div>
 
             <CrossSolver />
+
+            <CFOPSolverCard />
 
             <MLSolverCard />
 
