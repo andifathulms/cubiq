@@ -311,33 +311,4 @@ export function CrossSolver() {
   )
 }
 
-function AnimatedCube({ setup, alg }: { setup: string; alg: string }) {
-  const containerRef = React.useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!containerRef.current) return
-    async function mount() {
-      await import('cubing/twisty')
-      if (!containerRef.current) return
-      const existing = containerRef.current.querySelector('twisty-player')
-      if (existing) existing.remove()
-      const player = document.createElement('twisty-player') as unknown as HTMLElement
-      // The scramble is applied instantly as the setup; only the solution animates
-      player.setAttribute('experimental-setup-alg', setup)
-      player.setAttribute('alg', alg)
-      player.setAttribute('puzzle', '3x3x3')
-      player.setAttribute('visualization', '3D')
-      player.setAttribute('background', 'none')
-      player.setAttribute('tempo-scale', '2')
-      player.style.width = '100%'
-      player.style.height = '260px'
-      containerRef.current!.appendChild(player)
-    }
-    mount()
-  }, [setup, alg])
-
-  return <div ref={containerRef} className="w-full" style={{ height: 260 }} />
-}
-
-// We need React imported for the ref in AnimatedCube
-import React from 'react'
+import { AnimatedCube } from '@/components/solvers/AnimatedCube'

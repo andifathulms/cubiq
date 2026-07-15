@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { Layers, Loader, Play, Copy, Check } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
+import { AnimatedCube } from '@/components/solvers/AnimatedCube'
 import { useCubiqStore } from '@/store'
 
 interface CFOPStage {
@@ -54,12 +55,29 @@ export function CFOPSolverCard() {
   const [solving, setSolving] = useState(false)
   const [result, setResult] = useState<CFOPResult | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [anim, setAnim] = useState<{ setup: string; alg: string; label: string } | null>(null)
+
+  function animateStage(res: CFOPResult, stageIdx: number) {
+    // Pre-apply the scramble, rotation and all previous stages; play this stage
+    const prior = res.stages.slice(0, stageIdx).flatMap(s => s.moves)
+    const setup = [currentScramble, res.rotation, ...prior].filter(Boolean).join(' ')
+    setAnim({
+      setup,
+      alg: res.stages[stageIdx].moves.join(' '),
+      label: res.stages[stageIdx].name,
+    })
+  }
+
+  function animateFull(res: CFOPResult) {
+    setAnim({ setup: currentScramble, alg: res.solution, label: 'full solution' })
+  }
 
   async function handleSolve() {
     if (!currentScramble) return
     setSolving(true)
     setResult(null)
     setError(null)
+    setAnim(null)
     try {
       const res = await fetch(`${settings.ml_service_url}/solve/cfop`, {
         method: 'POST',
@@ -166,6 +184,14 @@ export function CFOPSolverCard() {
             <span className="ml-auto font-mono tabular-nums">
               {result.total_moves} moves · {result.time_ms.toFixed(0)}ms
             </span>
+            <button
+              onClick={() => animateFull(result)}
+              title="Animate full solution"
+              className="p-1 rounded transition-colors shrink-0"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              <Play size={13} />
+            </button>
             <CopyButton text={result.solution} />
           </div>
 
@@ -187,8 +213,36 @@ export function CFOPSolverCard() {
               <span className="text-xs font-mono tabular-nums shrink-0" style={{ color: 'var(--text-muted)' }}>
                 {stage.move_count}m
               </span>
+              {stage.moves.length > 0 && (
+                <button
+                  onClick={() => animateStage(result, i)}
+                  title="Animate this stage"
+                  className="p-1 rounded transition-colors shrink-0"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  <Play size={12} />
+                </button>
+              )}
             </div>
           ))}
+
+          {anim && (
+            <div className="mt-2 rounded-xl px-3 py-2" style={{ background: 'var(--bg-elevated)' }}>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs font-display" style={{ color: 'var(--text-muted)' }}>
+                  {anim.label}
+                </p>
+                <button
+                  onClick={() => setAnim(null)}
+                  className="text-xs px-2 py-0.5 rounded"
+                  style={{ color: 'var(--text-muted)', background: 'var(--bg-surface)' }}
+                >
+                  Close
+                </button>
+              </div>
+              <AnimatedCube setup={anim.setup} alg={anim.alg} />
+            </div>
+          )}
         </div>
       )}
     </GlassCard>
