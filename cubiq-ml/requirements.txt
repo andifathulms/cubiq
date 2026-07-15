@@ -6,3 +6,4 @@ pydantic_core==2.46.3
 uvicorn==0.39.0
 torch
 numpy
+magiccube  # test referee for 4x4 engine
