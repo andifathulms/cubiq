@@ -6,12 +6,20 @@ import { AnimatedCube } from '@/components/solvers/AnimatedCube'
 import { generateScramble } from '@/lib/cubing'
 import { useCubiqStore } from '@/store'
 
-interface Result222 {
+interface OptimalResult {
   moves: string[]
   move_count: number
   alternatives: string[][]
   optimal: boolean
   time_ms: number
+}
+
+interface Props {
+  title: string
+  description: string
+  puzzleType: string      // session PuzzleType, e.g. '222' | 'pyram'
+  endpoint: string        // e.g. '/solve/222'
+  twistyId: string        // TwistyPlayer puzzle id, e.g. '2x2x2' | 'pyraminx'
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -32,28 +40,28 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-export function Cube222SolverCard() {
+export function OptimalSolverCard({ title, description, puzzleType, endpoint, twistyId }: Props) {
   const { settings, currentScramble } = useCubiqStore()
   const activePuzzle = useCubiqStore(
     s => s.sessions.find(sess => sess.id === s.activeSessionId)?.puzzle ?? '333'
   )
   const [scramble, setScramble] = useState('')
   const [solving, setSolving] = useState(false)
-  const [result, setResult] = useState<Result222 | null>(null)
+  const [result, setResult] = useState<OptimalResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showAnim, setShowAnim] = useState(false)
 
-  // Follow the timer scramble when a 2x2 session is active
+  // Follow the timer scramble when a matching session is active
   useEffect(() => {
-    if (activePuzzle === '222' && currentScramble) {
+    if (activePuzzle === puzzleType && currentScramble) {
       setScramble(currentScramble)
       setResult(null)
       setShowAnim(false)
     }
-  }, [activePuzzle, currentScramble])
+  }, [activePuzzle, currentScramble, puzzleType])
 
   function generate() {
-    setScramble(generateScramble('222'))
+    setScramble(generateScramble(puzzleType))
     setResult(null)
     setError(null)
     setShowAnim(false)
@@ -66,7 +74,7 @@ export function Cube222SolverCard() {
     setError(null)
     setShowAnim(false)
     try {
-      const res = await fetch(`${settings.ml_service_url}/solve/222`, {
+      const res = await fetch(`${settings.ml_service_url}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ state: scramble }),
@@ -97,12 +105,11 @@ export function Cube222SolverCard() {
 
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold font-display text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
-            2×2 Optimal Solver
+            {title}
           </h3>
           <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
-            Every 2×2 position is precomputed (all 3.6M states), so solutions are
-            provably optimal — never more than 11 moves.
-            {activePuzzle === '222' && ' Following your session scramble.'}
+            {description}
+            {activePuzzle === puzzleType && ' Following your session scramble.'}
           </p>
 
           <div className="flex items-center gap-2">
@@ -188,7 +195,7 @@ export function Cube222SolverCard() {
 
           {showAnim && (
             <div className="mt-1 rounded-xl px-3 py-2" style={{ background: 'var(--bg-elevated)' }}>
-              <AnimatedCube setup={scramble} alg={result.moves.join(' ')} puzzle="2x2x2" height={220} />
+              <AnimatedCube setup={scramble} alg={result.moves.join(' ')} puzzle={twistyId} height={220} />
             </div>
           )}
         </div>

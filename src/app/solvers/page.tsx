@@ -6,7 +6,7 @@ import { MobileNav } from '@/components/layout/MobileNav'
 import { MLSolverCard } from '@/components/solvers/MLSolverCard'
 import { CFOPSolverCard } from '@/components/solvers/CFOPSolverCard'
 import { Cube444SolverCard } from '@/components/solvers/Cube444SolverCard'
-import { Cube222SolverCard } from '@/components/solvers/Cube222SolverCard'
+import { OptimalSolverCard } from '@/components/solvers/OptimalSolverCard'
 import { MDPPanel } from '@/components/solvers/MDPPanel'
 
 // Solver loads cubing.js & runs IDA* — keep off SSR
@@ -45,7 +45,21 @@ export default function SolversPage() {
 
             <CFOPSolverCard />
 
-            <Cube222SolverCard />
+            <OptimalSolverCard
+              title="2×2 Optimal Solver"
+              description="Every 2×2 position is precomputed (all 3.6M states), so solutions are provably optimal — never more than 11 moves."
+              puzzleType="222"
+              endpoint="/solve/222"
+              twistyId="2x2x2"
+            />
+
+            <OptimalSolverCard
+              title="Pyraminx Optimal Solver"
+              description="The full 933k-state Pyraminx core is precomputed — optimal solutions of at most 11 moves, plus tip twists."
+              puzzleType="pyram"
+              endpoint="/solve/pyram"
+              twistyId="pyraminx"
+            />
 
             <Cube444SolverCard />
 

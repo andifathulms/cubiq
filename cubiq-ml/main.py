@@ -11,6 +11,7 @@ from solver import solve_all_crosses
 from cfop import solve_cfop, solve_xcross, FACES
 from cfop444 import solve_444
 from solver222 import solve_222, get_table as warm_222_table
+from solverpyram import solve_pyram, get_table as warm_pyram_table
 from f2l import warm_tables
 from mdp import train as mdp_train
 from mdp.env import CubeEnv
@@ -25,6 +26,7 @@ def _startup():
     # Build/load the F2L and 2x2 distance tables off the request path
     threading.Thread(target=warm_tables, daemon=True).start()
     threading.Thread(target=warm_222_table, daemon=True).start()
+    threading.Thread(target=warm_pyram_table, daemon=True).start()
 
 _mdp_env = CubeEnv()
 
@@ -190,6 +192,24 @@ def solve_222_endpoint(req: Solve222Request):
     t0 = time.perf_counter()
     try:
         result = solve_222(req.state, max_alternatives=max(1, min(req.max_alternatives, 5)))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    result['time_ms'] = (time.perf_counter() - t0) * 1000
+    return result
+
+
+# ── /solve/pyram ──────────────────────────────────────────────────────────────
+
+class SolvePyramRequest(BaseModel):
+    state: str                      # pyraminx scramble (U L R B + tips u l r b)
+    max_alternatives: int = 3
+
+
+@app.post("/solve/pyram")
+def solve_pyram_endpoint(req: SolvePyramRequest):
+    t0 = time.perf_counter()
+    try:
+        result = solve_pyram(req.state, max_alternatives=max(1, min(req.max_alternatives, 5)))
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     result['time_ms'] = (time.perf_counter() - t0) * 1000
