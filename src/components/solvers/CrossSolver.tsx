@@ -43,12 +43,50 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-function SolutionRow({ sol, onAnimate }: { sol: CrossSolution; onAnimate: (sol: CrossSolution) => void }) {
+interface XCrossSolution {
+  pair: string
+  moves: string[]
+  move_count: number
+  alternatives: string[][]
+}
+
+function SolutionRow({ sol, onAnimate }: { sol: CrossSolution; onAnimate: (alg: string) => void }) {
+  const { settings, currentScramble } = useCubiqStore()
   const [showAlts, setShowAlts] = useState(false)
+  const [xcross, setXcross] = useState<XCrossSolution[] | null>(null)
+  const [xcrossOpen, setXcrossOpen] = useState(false)
+  const [xcrossLoading, setXcrossLoading] = useState(false)
+  const [xcrossError, setXcrossError] = useState<string | null>(null)
   const moveStr = sol.moves.join(' ')
   const prefix = sol.rotation ? sol.rotation + ' ' : ''
   const display = prefix + (moveStr || '(already solved)')
   const alts = sol.alternatives ?? []
+
+  async function toggleXcross() {
+    if (xcrossOpen) {
+      setXcrossOpen(false)
+      return
+    }
+    setXcrossOpen(true)
+    if (xcross || xcrossLoading) return
+    setXcrossLoading(true)
+    setXcrossError(null)
+    try {
+      const res = await fetch(`${settings.ml_service_url}/solve/xcross`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ state: currentScramble, face: sol.face }),
+        signal: AbortSignal.timeout(30000),
+      })
+      if (!res.ok) throw new Error(`service returned ${res.status}`)
+      const data = await res.json()
+      setXcross(data.solutions)
+    } catch {
+      setXcrossError('x-cross needs the cubiq-ml service — is it running?')
+    } finally {
+      setXcrossLoading(false)
+    }
+  }
 
   return (
     <div
@@ -78,7 +116,7 @@ function SolutionRow({ sol, onAnimate }: { sol: CrossSolution; onAnimate: (sol: 
       </span>
 
       <button
-        onClick={() => onAnimate(sol)}
+        onClick={() => onAnimate(prefix + moveStr)}
         title="Animate in cube preview"
         className="p-1 rounded transition-colors shrink-0"
         style={{ color: 'var(--text-muted)' }}
@@ -91,15 +129,24 @@ function SolutionRow({ sol, onAnimate }: { sol: CrossSolution; onAnimate: (sol: 
       <CopyButton text={display} />
     </div>
 
-    {alts.length > 0 && (
+    <div className="flex items-center gap-3 mt-1">
+      {alts.length > 0 && (
+        <button
+          onClick={() => setShowAlts(v => !v)}
+          className="text-[11px] font-mono transition-colors"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          {showAlts ? '− hide' : `+ ${alts.length} more optimal`}
+        </button>
+      )}
       <button
-        onClick={() => setShowAlts(v => !v)}
-        className="self-start mt-1 text-[11px] font-mono transition-colors"
-        style={{ color: 'var(--text-muted)' }}
+        onClick={toggleXcross}
+        className="text-[11px] font-mono transition-colors"
+        style={{ color: xcrossOpen ? 'var(--accent-primary)' : 'var(--text-muted)' }}
       >
-        {showAlts ? '− hide' : `+ ${alts.length} more optimal`}
+        {xcrossOpen ? '− x-cross' : '+ x-cross'}
       </button>
-    )}
+    </div>
 
     {showAlts && alts.map((alt, i) => (
       <div key={i} className="flex items-center gap-2 mt-1 pl-8">
@@ -109,6 +156,39 @@ function SolutionRow({ sol, onAnimate }: { sol: CrossSolution; onAnimate: (sol: 
         <CopyButton text={prefix + alt.join(' ')} />
       </div>
     ))}
+
+    {xcrossOpen && (
+      <div className="flex flex-col gap-1 mt-2 pl-8">
+        {xcrossLoading && (
+          <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>solving x-crosses…</span>
+        )}
+        {xcrossError && (
+          <span className="text-[11px]" style={{ color: 'var(--accent-danger)' }}>{xcrossError}</span>
+        )}
+        {xcross?.map(xs => (
+          <div key={xs.pair} className="flex items-center gap-2">
+            <span className="text-[10px] font-mono w-14 shrink-0" style={{ color: 'var(--text-muted)' }}>
+              +{xs.pair} pair
+            </span>
+            <span className="flex-1 font-mono text-xs break-all" style={{ color: 'var(--text-secondary)' }}>
+              {prefix + xs.moves.join(' ')}
+            </span>
+            <span className="text-[10px] font-mono tabular-nums shrink-0" style={{ color: 'var(--text-muted)' }}>
+              {xs.move_count}m
+            </span>
+            <button
+              onClick={() => onAnimate(prefix + xs.moves.join(' '))}
+              title="Animate in cube preview"
+              className="p-1 rounded transition-colors shrink-0"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              <Play size={11} />
+            </button>
+            <CopyButton text={prefix + xs.moves.join(' ')} />
+          </div>
+        ))}
+      </div>
+    )}
     </div>
   )
 }
@@ -118,7 +198,7 @@ export function CrossSolver() {
   const [solutions, setSolutions] = useState<CrossSolution[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [animScramble, setAnimScramble] = useState<string | null>(null)
+  const [anim, setAnim] = useState<{ setup: string; alg: string } | null>(null)
   const [lastSolvedScramble, setLastSolvedScramble] = useState<string>('')
 
   const solve = useCallback(async (scramble: string) => {
@@ -143,9 +223,8 @@ export function CrossSolver() {
     }
   }, [currentScramble, lastSolvedScramble, solve])
 
-  function handleAnimate(sol: CrossSolution) {
-    const prefix = sol.rotation ? sol.rotation + ' ' : ''
-    setAnimScramble(currentScramble + ' ' + prefix + sol.moves.join(' '))
+  function handleAnimate(alg: string) {
+    setAnim({ setup: currentScramble, alg })
   }
 
   return (
@@ -210,29 +289,29 @@ export function CrossSolver() {
         </div>
       )}
 
-      {/* Animated cube preview */}
-      {animScramble && (
+      {/* Animated cube preview — scramble is pre-applied, only the solution plays */}
+      {anim && (
         <GlassCard className="mt-2">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-display" style={{ color: 'var(--text-muted)' }}>
               Solution animation
             </p>
             <button
-              onClick={() => setAnimScramble(null)}
+              onClick={() => setAnim(null)}
               className="text-xs px-2 py-0.5 rounded"
               style={{ color: 'var(--text-muted)', background: 'var(--bg-elevated)' }}
             >
               Close
             </button>
           </div>
-          <AnimatedCube alg={animScramble} />
+          <AnimatedCube setup={anim.setup} alg={anim.alg} />
         </GlassCard>
       )}
     </div>
   )
 }
 
-function AnimatedCube({ alg }: { alg: string }) {
+function AnimatedCube({ setup, alg }: { setup: string; alg: string }) {
   const containerRef = React.useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -243,17 +322,19 @@ function AnimatedCube({ alg }: { alg: string }) {
       const existing = containerRef.current.querySelector('twisty-player')
       if (existing) existing.remove()
       const player = document.createElement('twisty-player') as unknown as HTMLElement
+      // The scramble is applied instantly as the setup; only the solution animates
+      player.setAttribute('experimental-setup-alg', setup)
       player.setAttribute('alg', alg)
       player.setAttribute('puzzle', '3x3x3')
       player.setAttribute('visualization', '3D')
       player.setAttribute('background', 'none')
-      player.setAttribute('tempo-scale', '3')
+      player.setAttribute('tempo-scale', '2')
       player.style.width = '100%'
       player.style.height = '260px'
       containerRef.current!.appendChild(player)
     }
     mount()
-  }, [alg])
+  }, [setup, alg])
 
   return <div ref={containerRef} className="w-full" style={{ height: 260 }} />
 }

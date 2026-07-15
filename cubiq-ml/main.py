@@ -8,7 +8,7 @@ import kociemba
 
 from cube import scramble_to_facelet
 from solver import solve_all_crosses
-from cfop import solve_cfop, FACES
+from cfop import solve_cfop, solve_xcross, FACES
 from f2l import warm_tables
 from mdp import train as mdp_train
 from mdp.env import CubeEnv
@@ -132,6 +132,26 @@ def solve_cfop_endpoint(req: CFOPSolveRequest):
             pair_variants=max(1, min(req.pair_variants, 3)),
             try_xcross=req.try_xcross,
         )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+# ── /solve/xcross ─────────────────────────────────────────────────────────────
+
+class XCrossSolveRequest(BaseModel):
+    state: str                      # scramble string (WCA notation)
+    face: str = 'D'
+    max_solutions: int = 2
+
+
+@app.post("/solve/xcross")
+def solve_xcross_endpoint(req: XCrossSolveRequest):
+    face = req.face.upper()
+    if face not in FACES:
+        raise HTTPException(status_code=422, detail=f"Invalid face '{req.face}'")
+    try:
+        return solve_xcross(req.state, face=face,
+                            max_solutions=max(1, min(req.max_solutions, 3)))
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

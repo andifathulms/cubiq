@@ -24,6 +24,32 @@ from lastlayer import FullState, solve_oll, solve_pll
 FACES = ['D', 'U', 'F', 'B', 'R', 'L']
 
 
+def solve_xcross(scramble: str, face: str = 'D', max_solutions: int = 2) -> dict:
+    """Optimal x-cross (cross + one F2L pair, solved jointly) for each of the
+    4 pairs. Moves are in the post-rotation frame; pair names refer to slots
+    as seen holding the cross face down."""
+    warm_tables()
+    t0 = time.perf_counter()
+    remapped = remap_scramble(scramble, face)
+    start = F2LState.from_scramble(remapped)
+    solutions = []
+    for pi, name in enumerate(PAIR_NAMES):
+        sols = solve_pairs(start, [pi], max_solutions=max_solutions)
+        solutions.append({
+            'pair': name,
+            'moves': sols[0] if sols else [],
+            'move_count': len(sols[0]) if sols else 0,
+            'alternatives': sols[1:],
+        })
+    solutions.sort(key=lambda s: s['move_count'])
+    return {
+        'face': face,
+        'rotation': FACE_ROTATION[face],
+        'solutions': solutions,
+        'time_ms': (time.perf_counter() - t0) * 1000,
+    }
+
+
 class _Beam:
     __slots__ = ('moves', 'stages', 'state', 'solved')
 
