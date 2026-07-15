@@ -80,6 +80,7 @@ class CrossSolveResponse(BaseModel):
     rotation: str
     moves: list[str]
     move_count: int
+    alternatives: list[list[str]] = []
     time_ms: float
 
 

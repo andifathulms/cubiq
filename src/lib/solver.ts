@@ -12,9 +12,21 @@ const FACE_CROSS: Record<Face, [number, number, number, number]> = {
   L: [3, 7, 9, 11],
 }
 
-// Rotation prefix shown alongside the solution (display-only, matches csTimer)
+// Rotation prefix for each face (csTimer convention: hold the cross face down)
 const FACE_ROTATION: Record<Face, string> = {
   D: '', U: 'z2', F: "x'", B: 'x', R: 'z', L: "z'",
+}
+
+// How each rotation maps an original face to its spatial position afterwards.
+// Solution moves are remapped through this so that "rotation + moves"
+// performed as read actually solves the cross.
+const ROT_MAP: Record<string, Record<string, string>> = {
+  '':   {},
+  'z2': { U: 'D', D: 'U', R: 'L', L: 'R' },
+  "x'": { F: 'D', D: 'B', B: 'U', U: 'F' },
+  'x':  { F: 'U', U: 'B', B: 'D', D: 'F' },
+  'z':  { U: 'R', R: 'D', D: 'L', L: 'U' },
+  "z'": { U: 'L', L: 'D', D: 'R', R: 'U' },
 }
 
 // ── 18-move edge tables from cubing.js KTransformation ───────────────────────
@@ -42,116 +54,108 @@ const MOVE_TABLES: Record<string, readonly [readonly number[], readonly number[]
 }
 
 const ALL_MOVES = Object.keys(MOVE_TABLES)
-
-// Precompute inverse permutations: invPerm[old_slot] = new_slot
-// (where does a piece currently in old_slot end up after this move?)
-const INV_PERM: Record<string, number[]> = {}
-for (const [m, [perm]] of Object.entries(MOVE_TABLES)) {
-  const inv = new Array<number>(12)
-  for (let i = 0; i < 12; i++) inv[perm[i]] = i
-  INV_PERM[m] = inv
-}
-
-// Face index for same-face pruning in IDA*
-const MOVE_FACE: Record<string, number> = {
-  U: 0, "U'": 0, U2: 0,
-  D: 1, "D'": 1, D2: 1,
-  F: 2, "F'": 2, F2: 2,
-  B: 3, "B'": 3, B2: 3,
-  R: 4, "R'": 4, R2: 4,
-  L: 5, "L'": 5, L2: 5,
-}
+const N_STATES = 24 ** 4 // 331,776
 
 // ── State encoding ────────────────────────────────────────────────────────────
-// State = [slot0,ori0, slot1,ori1, slot2,ori2, slot3,ori3] for the 4 cross pieces.
-// Each (slot,ori) pair encodes as slot*2+ori (0-23). 4 pieces → 24^4 = 331,776 keys.
-
-function encode(s: number[]): number {
-  return (s[0] * 2 + s[1]) +
-    24  * (s[2] * 2 + s[3]) +
-    576 * (s[4] * 2 + s[5]) +
-    13824 * (s[6] * 2 + s[7])
-}
-
-function applyMoveToState(s: number[], move: string): number[] {
-  const invPerm = INV_PERM[move]
-  const [, ori] = MOVE_TABLES[move]
-  const result = new Array<number>(8)
-  for (let i = 0; i < 4; i++) {
-    const slot = s[i * 2]
-    const newSlot = invPerm[slot]
-    result[i * 2]     = newSlot
-    result[i * 2 + 1] = (s[i * 2 + 1] + ori[newSlot]) % 2
+// Each tracked cross piece is a (slot, orientation) sub-state: slot*2+ori, 0-23.
+// Full state = base-24 combination of the 4 pieces' sub-states (24^4 keys).
+// The sub-state transition per move is the same for every face — only the
+// solved state differs — so SUB_TRANS is computed once, globally.
+// SUB_TRANS[moveIdx][sub] = sub after that move.
+const SUB_TRANS: Int32Array[] = ALL_MOVES.map(m => {
+  const [perm, ori] = MOVE_TABLES[m]
+  const inv = new Array<number>(12)
+  for (let i = 0; i < 12; i++) inv[perm[i]] = i
+  const t = new Int32Array(24)
+  for (let slot = 0; slot < 12; slot++) {
+    for (let o = 0; o < 2; o++) {
+      const ns = inv[slot]
+      t[slot * 2 + o] = ns * 2 + ((o + ori[ns]) % 2)
+    }
   }
-  return result
+  return t
+})
+
+function applyMoveEncoded(state: number, moveIdx: number): number {
+  const t = SUB_TRANS[moveIdx]
+  return t[state % 24]
+    + 24 * t[Math.floor(state / 24) % 24]
+    + 576 * t[Math.floor(state / 576) % 24]
+    + 13824 * t[Math.floor(state / 13824) % 24]
 }
 
-// ── BFS pruning table ─────────────────────────────────────────────────────────
-// table[encoded_state] = min moves to reach solved (255 = unvisited).
-// BFS starts from solved state and expands outward up to depth 8.
+// ── Exact distance tables (BFS over the full 331,776-state space) ────────────
+// Because the whole space is enumerated, dist[state] is the EXACT number of
+// moves to solve — solving is a walk down the gradient, always optimal.
+// Built lazily once per face, then cached for the lifetime of the page.
 
-function buildPruningTable(crossPieces: readonly [number, number, number, number]): Uint8Array {
-  const table = new Uint8Array(331776).fill(255)
-  const solvedState = [crossPieces[0], 0, crossPieces[1], 0, crossPieces[2], 0, crossPieces[3], 0]
-  table[encode(solvedState)] = 0
+const TABLE_CACHE = new Map<Face, Uint8Array>()
 
-  // BFS using a typed queue for efficiency
-  const queue: number[][] = [solvedState]
-  let qi = 0
-  while (qi < queue.length) {
-    const state = queue[qi++]
-    const depth = table[encode(state)]
-    if (depth >= 8) continue
-    for (const move of ALL_MOVES) {
-      const next = applyMoveToState(state, move)
-      const key = encode(next)
-      if (table[key] === 255) {
-        table[key] = depth + 1
-        queue.push(next)
+function getDistanceTable(face: Face): Uint8Array {
+  const cached = TABLE_CACHE.get(face)
+  if (cached) return cached
+
+  const cross = FACE_CROSS[face]
+  const dist = new Uint8Array(N_STATES).fill(255)
+  const solved = cross[0] * 2 + 24 * (cross[1] * 2) + 576 * (cross[2] * 2) + 13824 * (cross[3] * 2)
+  dist[solved] = 0
+
+  const queue = new Int32Array(N_STATES)
+  queue[0] = solved
+  let head = 0
+  let tail = 1
+  while (head < tail) {
+    const s = queue[head++]
+    const d = dist[s]
+    for (let mi = 0; mi < SUB_TRANS.length; mi++) {
+      const ns = applyMoveEncoded(s, mi)
+      if (dist[ns] === 255) {
+        dist[ns] = d + 1
+        queue[tail++] = ns
       }
     }
   }
-  return table
+
+  TABLE_CACHE.set(face, dist)
+  return dist
 }
 
-// ── IDA* ──────────────────────────────────────────────────────────────────────
+// ── Optimal solution enumeration ──────────────────────────────────────────────
 
-function idaSearch(
-  state: number[],
-  depth: number,
-  maxDepth: number,
-  lastFace: number,
-  path: string[],
-  table: Uint8Array,
-): boolean {
-  const h = table[encode(state)]
-  if (h === 255) return false        // unreachable (shouldn't happen on valid states)
-  if (depth + h > maxDepth) return false
-  if (h === 0) return true           // solved
-
-  for (const move of ALL_MOVES) {
-    const face = MOVE_FACE[move]
-    if (face === lastFace) continue  // same-face pruning
-    const next = applyMoveToState(state, move)
-    path.push(move)
-    if (idaSearch(next, depth + 1, maxDepth, face, path, table)) return true
-    path.pop()
-  }
-  return false
-}
-
-function idaSolve(initialState: number[], table: Uint8Array): string[] {
+function findOptimalSolutions(state: number, dist: Uint8Array, limit: number): string[][] {
+  const solutions: string[][] = []
   const path: string[] = []
-  for (let maxDepth = 0; maxDepth <= 8; maxDepth++) {
-    path.length = 0
-    if (idaSearch(initialState, 0, maxDepth, -1, path, table)) return [...path]
+
+  function dfs(s: number) {
+    if (solutions.length >= limit) return
+    const h = dist[s]
+    if (h === 0) {
+      solutions.push([...path])
+      return
+    }
+    for (let mi = 0; mi < ALL_MOVES.length; mi++) {
+      const ns = applyMoveEncoded(s, mi)
+      if (dist[ns] === h - 1) {
+        path.push(ALL_MOVES[mi])
+        dfs(ns)
+        path.pop()
+        if (solutions.length >= limit) return
+      }
+    }
   }
-  return []
+
+  dfs(state)
+  return solutions
+}
+
+function remapMoves(moves: string[], rotation: string): string[] {
+  const mapping = ROT_MAP[rotation]
+  return moves.map(m => (mapping[m[0]] ?? m[0]) + m.slice(1))
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-export async function solveAllCrosses(scramble: string): Promise<CrossSolution[]> {
+export async function solveAllCrosses(scramble: string, maxAlternatives = 3): Promise<CrossSolution[]> {
   const { cube3x3x3 } = await import('cubing/puzzles')
   const { Alg } = await import('cubing/alg')
 
@@ -172,19 +176,21 @@ export async function solveAllCrosses(scramble: string): Promise<CrossSolution[]
 
   for (const face of faces) {
     const cross = FACE_CROSS[face]
-    const table = buildPruningTable(cross)
-    const initialState = [
-      pieceSlot[cross[0]], pieceOri[cross[0]],
-      pieceSlot[cross[1]], pieceOri[cross[1]],
-      pieceSlot[cross[2]], pieceOri[cross[2]],
-      pieceSlot[cross[3]], pieceOri[cross[3]],
-    ]
-    const moves = idaSolve(initialState, table)
+    const dist = getDistanceTable(face)
+    let state = 0
+    for (let i = 0; i < 4; i++) {
+      state += (pieceSlot[cross[i]] * 2 + pieceOri[cross[i]]) * 24 ** i
+    }
+    const rotation = FACE_ROTATION[face]
+    const allOptimal = findOptimalSolutions(state, dist, maxAlternatives)
+    const remapped = allOptimal.map(m => remapMoves(m, rotation))
+    const moves = remapped[0] ?? []
     solutions.push({
       face,
-      rotation: FACE_ROTATION[face],
+      rotation,
       moves,
       move_count: moves.length,
+      alternatives: remapped.slice(1),
     })
   }
 

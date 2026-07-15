@@ -36,6 +36,7 @@ export interface CrossSolution {
   rotation: string
   moves: string[]
   move_count: number
+  alternatives?: string[][]   // other optimal solutions (same length)
 }
 
 export interface SessionStats {
