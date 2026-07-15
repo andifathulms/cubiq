@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Box, Loader, Play, RefreshCw, Copy, Check } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedCube } from '@/components/solvers/AnimatedCube'
+import { generateScramble } from '@/lib/cubing'
 import { useCubiqStore } from '@/store'
 
 interface Stage444 {
@@ -60,20 +61,15 @@ export function Cube444SolverCard() {
   const [error, setError] = useState<string | null>(null)
   const [anim, setAnim] = useState<{ setup: string; alg: string; label: string } | null>(null)
 
-  async function generate() {
+  function generate() {
     setGenerating(true)
     setResult(null)
     setAnim(null)
     setError(null)
-    try {
-      const { randomScrambleForEvent } = await import('cubing/scramble')
-      const alg = await randomScrambleForEvent('444')
-      setScramble(alg.toString())
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setGenerating(false)
-    }
+    // local move-sequence generator — cubing.js's randomScrambleForEvent
+    // needs a module worker, which fails under the webpack dev bundler
+    setScramble(generateScramble('444'))
+    setGenerating(false)
   }
 
   async function handleSolve() {
