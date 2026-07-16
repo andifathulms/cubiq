@@ -55,6 +55,14 @@ export default function SolversPage() {
             />
 
             <OptimalSolverCard
+              title="Skewb Optimal Solver"
+              description="All 3,149,280 Skewb positions are precomputed — provably optimal solutions, never more than 11 moves."
+              puzzleType="skewb"
+              endpoint="/solve/skewb"
+              twistyId="skewb"
+            />
+
+            <OptimalSolverCard
               title="Pyraminx Optimal Solver"
               description="The full 933k-state Pyraminx core is precomputed — optimal solutions of at most 11 moves, plus tip twists."
               puzzleType="pyram"

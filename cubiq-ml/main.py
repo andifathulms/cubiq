@@ -13,6 +13,7 @@ from cfop444 import solve_444
 from solver222 import solve_222, get_table as warm_222_table
 from solverpyram import solve_pyram, get_table as warm_pyram_table
 from solvermega import solve_mega, warm_pair_tables as warm_mega_tables
+from solverskewb import solve_skewb, get_table as warm_skewb_table
 from f2l import warm_tables
 from mdp import train as mdp_train
 from mdp.env import CubeEnv
@@ -29,6 +30,7 @@ def _startup():
     threading.Thread(target=warm_222_table, daemon=True).start()
     threading.Thread(target=warm_pyram_table, daemon=True).start()
     threading.Thread(target=warm_mega_tables, daemon=True).start()
+    threading.Thread(target=warm_skewb_table, daemon=True).start()
 
 _mdp_env = CubeEnv()
 
@@ -230,6 +232,24 @@ def solve_minx_endpoint(req: SolveMinxRequest):
         return solve_mega(req.state)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+# ── /solve/skewb ──────────────────────────────────────────────────────────────
+
+class SolveSkewbRequest(BaseModel):
+    state: str                      # skewb scramble (U L R B, WCA)
+    max_alternatives: int = 3
+
+
+@app.post("/solve/skewb")
+def solve_skewb_endpoint(req: SolveSkewbRequest):
+    t0 = time.perf_counter()
+    try:
+        result = solve_skewb(req.state, max_alternatives=max(1, min(req.max_alternatives, 5)))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    result['time_ms'] = (time.perf_counter() - t0) * 1000
+    return result
 
 
 # ── /mdp/* ────────────────────────────────────────────────────────────────────
