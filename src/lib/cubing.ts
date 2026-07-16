@@ -57,13 +57,6 @@ const CONFIGS: Record<string, MoveConfig> = {
     length: 11,
     axis: { U: 0, R: 1, L: 2, B: 3 },
   },
-  'minx': {
-    moves: [
-      'U++', 'U--', 'R++', 'R--', 'D++', 'D--',
-      'F++', 'F--', 'L++', 'L--', 'BR++', 'BR--', 'BL++', 'BL--',
-    ],
-    length: 70,
-  },
 }
 
 // PuzzleType -> cubing.js TwistyPlayer puzzle id
@@ -81,6 +74,7 @@ export const TWISTY_PUZZLE_IDS: Record<string, string> = {
 
 export function generateScramble(puzzle: string = '333'): string {
   if (puzzle === 'sq1') return generateSq1()
+  if (puzzle === 'minx') return generateMinx()
 
   const config = CONFIGS[puzzle] ?? CONFIGS['333']
   const { moves, length, axis } = config
@@ -105,6 +99,21 @@ export function generateScramble(puzzle: string = '333'): string {
   }
 
   return result.join(' ')
+}
+
+// WCA megaminx (Pochmann): 7 lines of 10 alternating R±±/D±± then U/U'
+function generateMinx(): string {
+  const lines: string[] = []
+  for (let line = 0; line < 7; line++) {
+    const parts: string[] = []
+    for (let i = 0; i < 10; i++) {
+      const face = i % 2 === 0 ? 'R' : 'D'
+      parts.push(face + (Math.random() < 0.5 ? '++' : '--'))
+    }
+    parts.push(Math.random() < 0.5 ? 'U' : "U'")
+    lines.push(parts.join(' '))
+  }
+  return lines.join(' ')
 }
 
 function generateSq1(): string {

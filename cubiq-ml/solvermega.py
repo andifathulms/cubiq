@@ -287,3 +287,13 @@ def solve_mega(scramble: str) -> dict:
         'solution': ' '.join(m for st in stages for m in st['moves']),
         'time_ms': (time.perf_counter() - t0) * 1000,
     }
+
+
+def warm_pair_tables():
+    """Precompute all pairwise distance tables (~9MB) so warm solves take
+    seconds instead of paying the lazy-build cost on the first request."""
+    all_pieces = [('edge', p) for p in range(30)] + [('corner', p) for p in range(20)]
+    for ka, pa in all_pieces:
+        for kb, pb in all_pieces:
+            if (ka, pa) != (kb, pb):
+                _pair_table(ka, pa, kb, pb)

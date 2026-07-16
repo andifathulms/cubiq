@@ -12,6 +12,7 @@ from cfop import solve_cfop, solve_xcross, FACES
 from cfop444 import solve_444
 from solver222 import solve_222, get_table as warm_222_table
 from solverpyram import solve_pyram, get_table as warm_pyram_table
+from solvermega import solve_mega, warm_pair_tables as warm_mega_tables
 from f2l import warm_tables
 from mdp import train as mdp_train
 from mdp.env import CubeEnv
@@ -27,6 +28,7 @@ def _startup():
     threading.Thread(target=warm_tables, daemon=True).start()
     threading.Thread(target=warm_222_table, daemon=True).start()
     threading.Thread(target=warm_pyram_table, daemon=True).start()
+    threading.Thread(target=warm_mega_tables, daemon=True).start()
 
 _mdp_env = CubeEnv()
 
@@ -214,6 +216,20 @@ def solve_pyram_endpoint(req: SolvePyramRequest):
         raise HTTPException(status_code=400, detail=str(exc))
     result['time_ms'] = (time.perf_counter() - t0) * 1000
     return result
+
+
+# ── /solve/minx ───────────────────────────────────────────────────────────────
+
+class SolveMinxRequest(BaseModel):
+    state: str                      # WCA megaminx scramble (R++ D-- ... U')
+
+
+@app.post("/solve/minx")
+def solve_minx_endpoint(req: SolveMinxRequest):
+    try:
+        return solve_mega(req.state)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 # ── /mdp/* ────────────────────────────────────────────────────────────────────

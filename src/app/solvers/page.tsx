@@ -6,6 +6,7 @@ import { MobileNav } from '@/components/layout/MobileNav'
 import { MLSolverCard } from '@/components/solvers/MLSolverCard'
 import { CFOPSolverCard } from '@/components/solvers/CFOPSolverCard'
 import { Cube444SolverCard } from '@/components/solvers/Cube444SolverCard'
+import { MegaminxSolverCard } from '@/components/solvers/MegaminxSolverCard'
 import { OptimalSolverCard } from '@/components/solvers/OptimalSolverCard'
 import { MDPPanel } from '@/components/solvers/MDPPanel'
 
@@ -62,6 +63,8 @@ export default function SolversPage() {
             />
 
             <Cube444SolverCard />
+
+            <MegaminxSolverCard />
 
             <MLSolverCard />
 
