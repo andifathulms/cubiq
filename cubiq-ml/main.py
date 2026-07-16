@@ -14,6 +14,7 @@ from solver222 import solve_222, get_table as warm_222_table
 from solverpyram import solve_pyram, get_table as warm_pyram_table
 from solvermega import solve_mega, warm_pair_tables as warm_mega_tables
 from solverskewb import solve_skewb, get_table as warm_skewb_table
+from solver555 import solve_555
 from f2l import warm_tables
 from mdp import train as mdp_train
 from mdp.env import CubeEnv
@@ -250,6 +251,20 @@ def solve_skewb_endpoint(req: SolveSkewbRequest):
         raise HTTPException(status_code=400, detail=str(exc))
     result['time_ms'] = (time.perf_counter() - t0) * 1000
     return result
+
+
+# ── /solve/555 ────────────────────────────────────────────────────────────────
+
+class Solve555Request(BaseModel):
+    state: str                      # 5x5 scramble (WCA notation: R, Rw...)
+
+
+@app.post("/solve/555")
+def solve_555_endpoint(req: Solve555Request):
+    try:
+        return solve_555(req.state)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 # ── /mdp/* ────────────────────────────────────────────────────────────────────
