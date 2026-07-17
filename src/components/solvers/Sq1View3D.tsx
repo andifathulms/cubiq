@@ -33,9 +33,12 @@ const CORNER_POLY: V3[] = [[0, 0, 0], polar(SHIFT, R_FACE), polar(30 + SHIFT, R_
 const EDGE_POLY: V3[] = [[0, 0, 0], polar(60 + SHIFT, R_FACE), polar(90 + SHIFT, R_FACE)]
 const CORNER_HOME = 0
 const EDGE_HOME = 2
-// equator halves either side of the north-south cut (east: x>0, west: x<0)
-const EQ_EAST: V3[] = [polar(0, R_FACE), polar(45, R_CORN), polar(135, R_CORN), polar(180, R_FACE)]
-const EQ_WEST: V3[] = [polar(180, R_FACE), polar(225, R_CORN), polar(315, R_CORN), polar(360, R_FACE)]
+// The equator's two pieces meet at the real slash boundaries (15°/195°), not
+// the face centres — otherwise the cut runs through the middle of a top/bottom
+// edge piece and can't actually slash. Splitting there also makes each piece's
+// visible span on a face unequal (60° vs 30°), matching a real Square-1.
+const EQ_EAST: V3[] = [polar(15, R_FACE), polar(45, R_CORN), polar(135, R_CORN), polar(195, R_FACE)]
+const EQ_WEST: V3[] = [polar(195, R_FACE), polar(225, R_CORN), polar(315, R_CORN), polar(375, R_FACE)]
 
 const rad = (d: number) => (d * Math.PI) / 180
 function rotZ(p: V3, d: number): V3 {
