@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { CircleDot, Loader, Play, RefreshCw, Copy, Check } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Sq1AnimatedView } from '@/components/solvers/Sq1AnimatedView'
+import { Sq1View3D } from '@/components/solvers/Sq1View3D'
 import { generateScramble } from '@/lib/cubing'
 import { useCubiqStore } from '@/store'
 
@@ -53,6 +54,7 @@ export function Sq1SolverCard() {
   const [result, setResult] = useState<ResultSq1 | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [anim, setAnim] = useState<{ setup: string; alg: string; label: string } | null>(null)
+  const [view3d, setView3d] = useState(true)
 
   // Follow the timer scramble when a Square-1 session is active
   useEffect(() => {
@@ -220,15 +222,26 @@ export function Sq1SolverCard() {
             <div className="mt-2 rounded-xl px-3 py-2" style={{ background: 'var(--bg-elevated)' }}>
               <div className="flex items-center justify-between mb-1">
                 <p className="text-xs font-display" style={{ color: 'var(--text-muted)' }}>{anim.label}</p>
-                <button
-                  onClick={() => setAnim(null)}
-                  className="text-xs px-2 py-0.5 rounded"
-                  style={{ color: 'var(--text-muted)', background: 'var(--bg-surface)' }}
-                >
-                  Close
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setView3d(v => !v)}
+                    className="text-xs px-2 py-0.5 rounded"
+                    style={{ color: 'var(--accent-primary)', background: 'var(--bg-surface)' }}
+                  >
+                    {view3d ? '2D' : '3D'}
+                  </button>
+                  <button
+                    onClick={() => setAnim(null)}
+                    className="text-xs px-2 py-0.5 rounded"
+                    style={{ color: 'var(--text-muted)', background: 'var(--bg-surface)' }}
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
-              <Sq1AnimatedView setup={anim.setup} alg={anim.alg} />
+              {view3d
+                ? <Sq1View3D setup={anim.setup} alg={anim.alg} />
+                : <Sq1AnimatedView setup={anim.setup} alg={anim.alg} />}
             </div>
           )}
         </div>

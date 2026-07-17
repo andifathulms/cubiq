@@ -1,4 +1,6 @@
 'use client'
+/* eslint-disable react-hooks/refs -- requestAnimationFrame-driven sim: the
+   mutable state lives in a ref and renders are forced explicitly per frame */
 import { useEffect, useReducer, useRef } from 'react'
 import { Pause, Play, RotateCcw } from 'lucide-react'
 
@@ -13,54 +15,11 @@ import { Pause, Play, RotateCcw } from 'lucide-react'
 // to the other disc — piece from top slot 6+j lands exactly on bottom
 // slot 12+j, matching the engine's swap.
 
-type Token = { kind: 'twist'; u: number; d: number } | { kind: 'slash' }
-
-const CORNER_FIRST = new Set([0, 3, 6, 9, 12, 15, 18, 21])
-const EDGES = new Set([2, 5, 8, 11, 14, 17, 20, 23])
-const SOLVED = Array.from({ length: 24 }, (_, i) => i)
-
-function norm(x: number): number {
-  x = ((x % 12) + 12) % 12
-  return x > 6 ? x - 12 : x
-}
-
-function parseTokens(s: string): Token[] {
-  const out: Token[] = []
-  for (const tok of s.replace(/\//g, ' / ').split(/\s+/)) {
-    if (tok === '/') out.push({ kind: 'slash' })
-    else if (tok.startsWith('(')) {
-      const [u, d] = tok.replace(/[()]/g, '').split(',').map(Number)
-      out.push({ kind: 'twist', u, d })
-    }
-  }
-  return out
-}
-
-function applyToken(w: number[], t: Token): number[] {
-  if (t.kind === 'twist') {
-    const u = ((t.u % 12) + 12) % 12
-    const d = ((t.d % 12) + 12) % 12
-    const top = Array.from({ length: 12 }, (_, i) => w[(i - u + 12) % 12])
-    const bot = Array.from({ length: 12 }, (_, i) => w[12 + ((i - d + 12) % 12)])
-    return [...top, ...bot]
-  }
-  const nw = [...w]
-  for (let i = 0; i < 6; i++) {
-    const tmp = nw[6 + i]
-    nw[6 + i] = nw[12 + i]
-    nw[12 + i] = tmp
-  }
-  return nw
-}
-
-// side-sticker color by the cell's home direction (both layers share zones)
-function sideColor(cell: number): string {
-  const a = (30 * (cell % 12) + 15) % 360
-  if (a >= 30 && a < 120) return 'var(--face-R)'
-  if (a >= 120 && a < 210) return 'var(--face-F)'
-  if (a >= 210 && a < 300) return 'var(--face-L)'
-  return 'var(--face-B)'
-}
+import {
+  SOLVED, type Sq1Token as Token, applySq1Token as applyToken, norm,
+  parseSq1Tokens as parseTokens, sq1SideColor as sideColor,
+  sq1TokenLabel, sq1Wedges, type Sq1Wedge,
+} from '@/lib/sq1'
 
 const R_CAP = 52
 const R_BAND = 80
@@ -82,32 +41,9 @@ function bandPath(cx: number, cy: number, a0: number, a1: number): string {
     + ` L ${pt(cx, cy, R_CAP, a1)} A ${R_CAP} ${R_CAP} 0 0 0 ${pt(cx, cy, R_CAP, a0)} Z`
 }
 
-interface Wedge {
-  slot: number          // layer-local 0-11
-  layer: 0 | 1
-  cells: number[]       // 1 (edge) or 2 (corner) cell ids
-}
-
-function wedgesOf(w: number[]): Wedge[] {
-  const out: Wedge[] = []
-  for (const layer of [0, 1] as const) {
-    const base = layer * 12
-    for (let s = 0; s < 12; s++) {
-      const c = w[base + s]
-      if (!CORNER_FIRST.has(c) && !EDGES.has(c)) continue  // corner-second cell
-      out.push({
-        slot: s,
-        layer,
-        cells: CORNER_FIRST.has(c) ? [c, c + 1] : [c],
-      })
-    }
-  }
-  return out
-}
-
-function tokenLabel(t: Token): string {
-  return t.kind === 'slash' ? '/' : `(${norm(t.u)},${norm(t.d)})`
-}
+type Wedge = Sq1Wedge
+const wedgesOf = sq1Wedges
+const tokenLabel = sq1TokenLabel
 
 interface Props {
   setup: string   // applied instantly
