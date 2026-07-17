@@ -139,10 +139,11 @@ function buildFaces(w: number[], eq: number, rotTop: number, rotBot: number,
       if (color) faces.push({ pts: f.pts, color })
     }
   }
-  // the whole equator flips with the slash (parity toggles per slash)
-  const eqDeg = 180 * eq + slashDeg
-  for (const f of eqPrism(EQ_EAST, eqDeg)) if (f.color !== PLASTIC) faces.push(f)
-  for (const f of eqPrism(EQ_WEST, eqDeg)) if (f.color !== PLASTIC) faces.push(f)
+  // Only the moving-side (west) equator half flips with the slash — the other
+  // half stays put. The equator's single parity bit is exactly this half's
+  // flip count, so the east half never moves.
+  for (const f of eqPrism(EQ_WEST, 180 * eq + slashDeg)) if (f.color !== PLASTIC) faces.push(f)
+  for (const f of eqPrism(EQ_EAST, 0)) if (f.color !== PLASTIC) faces.push(f)
   return faces
 }
 
