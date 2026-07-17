@@ -23,7 +23,7 @@ interface Face {
   stroke?: string
 }
 
-const PLASTIC = '#15151d'
+const PLASTIC = '#2e2e3a'
 // The cross-section square is rotated -15° from axis-aligned: the slash
 // cut runs north-south through two FACE points, so square corners sit at
 // 30°/120°/210°/300° and face centers at 75°/165°/255°/345° (which is
@@ -122,6 +122,13 @@ export function Sq1View3D({ setup, alg, height = 260 }: Props) {
 
     const tick = (ts: number) => {
       const st = sim.current
+      // commit no-op (0,0) alignment tokens instantly
+      while (st.idx < st.tokens.length) {
+        const tk = st.tokens[st.idx]
+        if (tk.kind === 'twist' && norm(tk.u) === 0 && norm(tk.d) === 0) {
+          st.idx += 1
+        } else break
+      }
       if (st.playing && st.idx < st.tokens.length) {
         if (st.last) {
           const tok = st.tokens[st.idx]
@@ -211,11 +218,27 @@ export function Sq1View3D({ setup, alg, height = 260 }: Props) {
         const j = (i + 1) % pr.length
         area += pr[i].x * pr[j].y - pr[j].x * pr[i].y
       }
+      // Newell normal (consistent CCW-from-outside winding → points outward)
+      let nx = 0, ny = 0, nz = 0
+      for (let i = 0; i < f.pts.length; i++) {
+        const a = f.pts[i]
+        const b = f.pts[(i + 1) % f.pts.length]
+        nx += (a[1] - b[1]) * (a[2] + b[2])
+        ny += (a[2] - b[2]) * (a[0] + b[0])
+        nz += (a[0] - b[0]) * (a[1] + b[1])
+      }
+      const nl = Math.hypot(nx, ny, nz) || 1
+      // camera-attached light: brightest facing the camera, bonus for facing up
+      const ny1 = (nx * sa + ny * ca) / nl
+      const nDepth = ny1 * ce - (nz / nl) * se
+      const nUp = (nz / nl) * ce + ny1 * se
+      const lit = Math.max(0, -nDepth) * 0.55 + Math.max(0, nUp) * 0.45
       return {
         d: pr.reduce((a, p) => a + p.d, 0) / pr.length,
         area,
         path: `M ${pr.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ')} Z`,
         color: f.color,
+        shade: Math.min(0.5, 0.55 * (1 - Math.min(1, lit))),
       }
     })
     .filter(f => f.area < 0)
@@ -241,7 +264,10 @@ export function Sq1View3D({ setup, alg, height = 260 }: Props) {
         onPointerUp={() => { sim.current.drag = null }}
       >
         {drawn.map((f, i) => (
-          <path key={i} d={f.path} fill={f.color} stroke="rgba(0,0,0,0.6)" strokeWidth="1" strokeLinejoin="round" />
+          <g key={i}>
+            <path d={f.path} fill={f.color} stroke="rgba(0,0,0,0.6)" strokeWidth="1" strokeLinejoin="round" />
+            {f.shade > 0.02 && <path d={f.path} fill="black" fillOpacity={f.shade} />}
+          </g>
         ))}
       </svg>
 

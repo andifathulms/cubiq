@@ -74,6 +74,13 @@ export function Sq1AnimatedView({ setup, alg, height = 230 }: Props) {
 
     const tick = (ts: number) => {
       const st = sim.current
+      // commit no-op (0,0) alignment tokens instantly
+      while (st.idx < st.tokens.length) {
+        const tk = st.tokens[st.idx]
+        if (tk.kind === 'twist' && norm(tk.u) === 0 && norm(tk.d) === 0) {
+          st.idx += 1
+        } else break
+      }
       if (st.playing && st.idx < st.tokens.length) {
         if (st.last) {
           const tok = st.tokens[st.idx]
