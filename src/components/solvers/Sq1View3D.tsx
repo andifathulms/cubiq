@@ -4,97 +4,140 @@
 import { useEffect, useReducer, useRef } from 'react'
 import { Pause, Play, RotateCcw } from 'lucide-react'
 import {
-  SOLVED, type Sq1Token, applySq1Token, norm, parseSq1Tokens,
-  sq1SideColor, sq1TokenLabel, sq1Wedges, type Sq1Wedge,
+  CORNER_FIRST, EDGES, SOLVED, type Sq1Token, applySq1Token, norm,
+  parseSq1Tokens, sq1TokenLabel, sq1Wedges,
 } from '@/lib/sq1'
 
-// Custom 3D Square-1 (cubing.js has no 3D renderer for square1). Wedges
-// are kite/triangle prisms extruded from the cube cross-section, plus the
-// two equator halves. Orthographic projection onto SVG with painter's
-// sorting and backface culling; drag to orbit. Twists rotate a layer
-// about the vertical axis; the slash carries the exchanged halves between
-// layers with a 180° spin (and spins the equator), landing every wedge on
-// exactly the slot the engine assigns it.
+// Custom 3D Square-1 (cubing.js has no 3D renderer for square1). The puzzle
+// is built from kite/triangle prisms. Faces point along the cardinal
+// directions (N/E/S/W) so the slash cut (north-south) is a symmetry axis —
+// which makes the slash a genuine rigid 180° flip of the moving half about
+// the horizontal north-south (Y) axis, and makes the bottom layer exactly
+// the top rotated 180° about the X axis. Twists rotate a layer about the
+// vertical (Z) axis. Orthographic SVG projection, painter-sorted and drawn
+// double-sided (back faces are dark interior plastic); drag to orbit.
 
 type V3 = [number, number, number]
-interface Face {
-  pts: V3[]
-  color: string
-  stroke?: string
-}
+interface Face { pts: V3[]; color: string }
 
 const PLASTIC = '#3a3a48'
-// The cross-section square is rotated -15° from axis-aligned: the slash
-// cut runs north-south through two FACE points, so square corners sit at
-// 30°/120°/210°/300° and face centers at 75°/165°/255°/345° (which is
-// exactly the sq1SideColor zone layout). Polar helpers, angles clockwise
-// from north:
-const polar = (deg: number, r: number): [number, number] => {
-  const a = (deg * Math.PI) / 180
-  return [r * Math.sin(a), r * Math.cos(a)]
-}
-const R_FACE = 1 / Math.cos(Math.PI / 12)   // square boundary 15° off a face center
-const R_CORN = Math.SQRT2                    // square corner
-// cross-sections at their symmetric home arcs, clockwise from above
-const CORNER_POLY: [number, number][] = [[0, 0], polar(0, R_FACE), polar(30, R_CORN), polar(60, R_FACE)]
-const CORNER_HOME = 0
-const EDGE_POLY: [number, number][] = [[0, 0], polar(60, R_FACE), polar(90, R_FACE)]
-const EDGE_HOME = 2
-const EQ_WEST: [number, number][] = [polar(180, R_FACE), polar(210, R_CORN), polar(300, R_CORN), polar(0, R_FACE)]
-const EQ_EAST: [number, number][] = [polar(0, R_FACE), polar(30, R_CORN), polar(120, R_CORN), polar(180, R_FACE)]
-const EQ_WEST_COLORS = ['var(--face-F)', 'var(--face-L)', 'var(--face-B)', '']
-const EQ_EAST_COLORS = ['var(--face-B)', 'var(--face-R)', 'var(--face-F)', '']
+const SHIFT = 15  // face centres at 0/90/180/270, corners at 45/135/225/315
+const R_FACE = 1 / Math.cos(Math.PI / 12)
+const R_CORN = Math.SQRT2
 const Z_CUT = 1 / 3
+const polar = (deg: number, r: number): V3 => {
+  const a = (deg * Math.PI) / 180
+  return [r * Math.sin(a), r * Math.cos(a), 0]
+}
+const CORNER_POLY: V3[] = [[0, 0, 0], polar(SHIFT, R_FACE), polar(30 + SHIFT, R_CORN), polar(60 + SHIFT, R_FACE)]
+const EDGE_POLY: V3[] = [[0, 0, 0], polar(60 + SHIFT, R_FACE), polar(90 + SHIFT, R_FACE)]
+const CORNER_HOME = 0
+const EDGE_HOME = 2
+// equator halves either side of the north-south cut (east: x>0, west: x<0)
+const EQ_EAST: V3[] = [polar(0, R_FACE), polar(45, R_CORN), polar(135, R_CORN), polar(180, R_FACE)]
+const EQ_WEST: V3[] = [polar(180, R_FACE), polar(225, R_CORN), polar(315, R_CORN), polar(360, R_FACE)]
 
-function rotCW(p: [number, number], deg: number): [number, number] {
-  const r = (deg * Math.PI) / 180
-  const c = Math.cos(r)
-  const s = Math.sin(r)
-  return [p[0] * c + p[1] * s, -p[0] * s + p[1] * c]
+const rad = (d: number) => (d * Math.PI) / 180
+function rotZ(p: V3, d: number): V3 {
+  const c = Math.cos(rad(d)), s = Math.sin(rad(d))
+  return [p[0] * c + p[1] * s, -p[0] * s + p[1] * c, p[2]]
+}
+function rotY(p: V3, d: number): V3 {   // about the horizontal north-south axis
+  const c = Math.cos(rad(d)), s = Math.sin(rad(d))
+  return [p[0] * c + p[2] * s, p[1], -p[0] * s + p[2] * c]
+}
+const rx180 = (p: V3): V3 => [p[0], -p[1], -p[2]]
+
+function zoneColor(x: number, y: number): string {
+  const a = (Math.atan2(x, y) * 180 / Math.PI + 360) % 360
+  if (a >= 45 && a < 135) return 'var(--face-R)'
+  if (a >= 135 && a < 225) return 'var(--face-F)'
+  if (a >= 225 && a < 315) return 'var(--face-L)'
+  return 'var(--face-B)'
 }
 
-// prism from a cross-section: top/bottom caps + side quads. sideColors[i]
-// colours the quad from poly[i] to poly[i+1]. Only STICKERED faces are
-// emitted ('' caps/sides are internal and skipped) — the puzzle is modelled
-// as its outer shell. The renderer draws that shell double-sided (a face's
-// back shows as dark interior plastic), so orbiting to any angle or a
-// mid-solve shape never sees through to the background, while there are no
-// internal faces to poke out as a star or dark band.
-function prism(
-  poly: [number, number][], z0: number, z1: number,
-  capTop: string, capBot: string, sideColors: string[],
-  rotDeg: number, dz: number, faces: Face[], scaleXY = 1,
-) {
-  const pts = poly.map(p => rotCW(p, rotDeg))
-    .map(([x, y]) => [x * scaleXY, y * scaleXY] as [number, number])
-  const lo = pts.map(([x, y]) => [x, y, z0 + dz] as V3)
-  const hi = pts.map(([x, y]) => [x, y, z1 + dz] as V3)
-  if (capTop) faces.push({ pts: [...hi].reverse(), color: capTop })
-  if (capBot) faces.push({ pts: lo, color: capBot })
-  for (let i = 0; i < pts.length; i++) {
-    if (!sideColors[i]) continue
-    const j = (i + 1) % pts.length
-    faces.push({ pts: [lo[i], lo[j], hi[j], hi[i]], color: sideColors[i] })
+// One prism per wedge. Built in "top style" (rotated to its slot, extruded
+// z = Z_CUT..1); a bottom-layer wedge is that rotated 180° about X, so the
+// slash — a 180° rotation about Y — maps a top wedge exactly onto its bottom
+// counterpart. `role`: 'cap' is the outward sticker cap; a number i is the
+// side quad from cross-section vertex i to i+1.
+function wedgePrism(cell: number, slot: number, layer: 0 | 1, twistDeg: number,
+                    slashDeg: number): { pts: V3[]; role: 'cap' | number }[] {
+  const corner = CORNER_FIRST.has(cell)
+  const poly = corner ? CORNER_POLY : EDGE_POLY
+  const home = corner ? CORNER_HOME : EDGE_HOME
+  const base = poly.map(p => rotZ(p, 30 * (slot - home) + twistDeg))
+  let lo = base.map(p => [p[0], p[1], Z_CUT] as V3)
+  let hi = base.map(p => [p[0], p[1], 1] as V3)
+  if (layer === 1) { lo = lo.map(rx180); hi = hi.map(rx180) }
+  if (slashDeg) { lo = lo.map(p => rotY(p, slashDeg)); hi = hi.map(p => rotY(p, slashDeg)) }
+  const out: { pts: V3[]; role: 'cap' | number }[] = [{ pts: [...hi].reverse(), role: 'cap' }]
+  for (let i = 0; i < base.length; i++) {
+    const j = (i + 1) % base.length
+    out.push({ pts: [lo[i], lo[j], hi[j], hi[i]], role: i })
   }
+  return out
 }
 
-function wedgeFaces(
-  wg: Sq1Wedge, rotDeg: number, dz: number, capOnTop: boolean, faces: Face[],
-  scaleXY = 1,
-) {
-  const isCorner = wg.cells.length === 2
-  const poly = isCorner ? CORNER_POLY : EDGE_POLY
-  const home = isCorner ? CORNER_HOME : EDGE_HOME
-  const cap = wg.cells[0] < 12 ? 'var(--face-U)' : 'var(--face-D)'
-  const sides = isCorner
-    ? ['', sq1SideColor(wg.cells[0]), sq1SideColor(wg.cells[1]), '']
-    : ['', sq1SideColor(wg.cells[0]), '']
-  const [z0, z1] = wg.layer === 0 ? [Z_CUT, 1] : [-1, -Z_CUT]
-  // the sticker cap is on the outward end (top of upper layer / bottom of
-  // lower); the inward cap is internal ('' → plastic)
-  prism(poly, z0, z1,
-    capOnTop ? cap : '', capOnTop ? '' : cap,
-    sides, 30 * (wg.slot - home) + rotDeg, dz, faces, scaleXY)
+// Per-piece sticker colours, fixed to each piece from its SOLVED placement so
+// they travel with the piece when it moves. Computed once from the geometry.
+const CAP_COLOR = new Map<number, string>()
+const SIDE_COLOR = new Map<number, (string | null)[]>()
+for (let cell = 0; cell < 24; cell++) {
+  if (!CORNER_FIRST.has(cell) && !EDGES.has(cell)) continue
+  const layer: 0 | 1 = cell < 12 ? 0 : 1
+  const corner = CORNER_FIRST.has(cell)
+  CAP_COLOR.set(cell, layer === 0 ? 'var(--face-U)' : 'var(--face-D)')
+  const sides: (string | null)[] = []
+  for (const f of wedgePrism(cell, cell % 12, layer, 0, 0)) {
+    if (f.role === 'cap') continue
+    const i = f.role as number
+    const sticker = corner ? (i === 1 || i === 2) : i === 1
+    sides[i] = sticker ? zoneColor((f.pts[0][0] + f.pts[1][0]) / 2, (f.pts[0][1] + f.pts[1][1]) / 2) : null
+  }
+  SIDE_COLOR.set(cell, sides)
+}
+
+// Equator half as a prism; only its outer arc walls carry stickers.
+function eqPrism(poly: V3[], eqDeg: number): { pts: V3[]; color: string }[] {
+  const lo = poly.map(p => rotY([p[0], p[1], -Z_CUT], eqDeg))
+  const hi = poly.map(p => rotY([p[0], p[1], Z_CUT], eqDeg))
+  const out: { pts: V3[]; color: string }[] = []
+  for (let i = 0; i < poly.length; i++) {
+    const j = (i + 1) % poly.length
+    // the diameter wall (last, along the cut) is internal → plastic
+    const color = i === poly.length - 1 ? PLASTIC
+      : zoneColor((poly[i][0] + poly[j][0]) / 2, (poly[i][1] + poly[j][1]) / 2)
+    out.push({ pts: [lo[i], lo[j], hi[j], hi[i]], color })
+  }
+  return out
+}
+
+// Build every face of the current state (wedges + equator) with animation
+// offsets. Only stickered faces are emitted (the outer shell); the renderer
+// draws them double-sided so backs read as dark interior plastic — no
+// see-through, no internal geometry poking out.
+function buildFaces(w: number[], eq: number, rotTop: number, rotBot: number,
+                    slashT: number): Face[] {
+  const faces: Face[] = []
+  const slashDeg = 180 * slashT
+  for (const wg of sq1Wedges(w)) {
+    const cell = wg.cells[0]
+    const twistDeg = wg.layer === 0 ? rotTop : rotBot
+    // the moving half of a slash: top slots 6–11 and bottom slots 0–5
+    const moving = slashT > 0
+      && ((wg.layer === 0 && wg.slot >= 6) || (wg.layer === 1 && wg.slot < 6))
+    const sides = SIDE_COLOR.get(cell)!
+    for (const f of wedgePrism(cell, wg.slot, wg.layer, twistDeg, moving ? slashDeg : 0)) {
+      const color = f.role === 'cap' ? CAP_COLOR.get(cell)! : sides[f.role as number]
+      if (color) faces.push({ pts: f.pts, color })
+    }
+  }
+  // the whole equator flips with the slash (parity toggles per slash)
+  const eqDeg = 180 * eq + slashDeg
+  for (const f of eqPrism(EQ_EAST, eqDeg)) if (f.color !== PLASTIC) faces.push(f)
+  for (const f of eqPrism(EQ_WEST, eqDeg)) if (f.color !== PLASTIC) faces.push(f)
+  return faces
 }
 
 interface Props {
@@ -173,34 +216,14 @@ export function Sq1View3D({ setup, alg, height = 260 }: Props) {
   let rotBot = 0
   let slashT = 0
   if (tok?.kind === 'twist') {
+    // twists rotate a layer about the vertical axis (short way)
     rotTop = 30 * norm(tok.u) * ease
     rotBot = 30 * norm(tok.d) * ease
   } else if (tok?.kind === 'slash') {
     slashT = ease
   }
 
-  // build faces from the committed state + animation offsets
-  const faces: Face[] = []
-  for (const wg of sq1Wedges(s.w)) {
-    const carried = slashT > 0
-      && ((wg.layer === 0 && wg.slot >= 6) || (wg.layer === 1 && wg.slot < 6))
-    let rot = wg.layer === 0 ? rotTop : rotBot
-    let dz = 0
-    let capOnTop = wg.layer === 0
-    let scale = 1
-    if (carried) {
-      rot = 180 * slashT
-      dz = (wg.layer === 0 ? -1 : 1) * (4 / 3) * slashT
-      // swing around the OUTSIDE of the puzzle, not through the equator
-      scale = 1 + 0.8 * Math.sin(Math.PI * slashT)
-      if (slashT > 0.5) capOnTop = wg.layer !== 0
-    }
-    wedgeFaces(wg, rot, dz, capOnTop, faces, scale)
-  }
-  const eqRot = 180 * s.eq + 180 * slashT
-  // equator caps are always internal (sandwiched between the two layers)
-  prism(EQ_WEST, -Z_CUT, Z_CUT, '', '', EQ_WEST_COLORS, eqRot, 0, faces)
-  prism(EQ_EAST, -Z_CUT, Z_CUT, '', '', EQ_EAST_COLORS, eqRot, 0, faces)
+  const faces = buildFaces(s.w, s.eq, rotTop, rotBot, slashT)
 
   // orthographic projection with painter's sorting
   const azr = (s.az * Math.PI) / 180
