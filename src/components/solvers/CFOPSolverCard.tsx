@@ -59,7 +59,7 @@ export function CFOPSolverCard() {
   const [solving, setSolving] = useState(false)
   const [result, setResult] = useState<CFOPResult | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [anim, setAnim] = useState<{ setup: string; alg: string; label: string } | null>(null)
+  const [anim, setAnim] = useState<{ setup: string; alg: string; label: string; stages?: { name: string; kind: string; moveCount: number }[] } | null>(null)
 
   function animateStage(res: CFOPResult, stageIdx: number) {
     // Pre-apply the scramble, rotation and all previous stages; play this stage
@@ -73,7 +73,12 @@ export function CFOPSolverCard() {
   }
 
   function animateFull(res: CFOPResult) {
-    setAnim({ setup: currentScramble, alg: res.solution, label: 'full solution' })
+    setAnim({
+      setup: currentScramble,
+      alg: res.solution,
+      label: 'full solution',
+      stages: res.stages.map(s => ({ name: s.name, kind: s.kind, moveCount: s.move_count })),
+    })
   }
 
   async function handleSolve() {
@@ -251,7 +256,7 @@ export function CFOPSolverCard() {
                   Close
                 </button>
               </div>
-              <AnimatedCube setup={anim.setup} alg={anim.alg} />
+              <AnimatedCube setup={anim.setup} alg={anim.alg} stages={anim.stages} />
             </div>
           )}
         </div>
