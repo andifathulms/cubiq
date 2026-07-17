@@ -15,6 +15,7 @@ from solverpyram import solve_pyram, get_table as warm_pyram_table
 from solvermega import solve_mega, warm_pair_tables as warm_mega_tables
 from solverskewb import solve_skewb, get_table as warm_skewb_table
 from solver555 import solve_555
+from solversq1 import solve_sq1, _tables as warm_sq1_tables
 from f2l import warm_tables
 from mdp import train as mdp_train
 from mdp.env import CubeEnv
@@ -32,6 +33,7 @@ def _startup():
     threading.Thread(target=warm_pyram_table, daemon=True).start()
     threading.Thread(target=warm_mega_tables, daemon=True).start()
     threading.Thread(target=warm_skewb_table, daemon=True).start()
+    threading.Thread(target=warm_sq1_tables, daemon=True).start()
 
 _mdp_env = CubeEnv()
 
@@ -251,6 +253,20 @@ def solve_skewb_endpoint(req: SolveSkewbRequest):
         raise HTTPException(status_code=400, detail=str(exc))
     result['time_ms'] = (time.perf_counter() - t0) * 1000
     return result
+
+
+# ── /solve/sq1 ────────────────────────────────────────────────────────────────
+
+class SolveSq1Request(BaseModel):
+    state: str                      # square-1 scramble, e.g. "(0,-1) / (3,0) / ..."
+
+
+@app.post("/solve/sq1")
+def solve_sq1_endpoint(req: SolveSq1Request):
+    try:
+        return solve_sq1(req.state)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 # ── /solve/555 ────────────────────────────────────────────────────────────────
