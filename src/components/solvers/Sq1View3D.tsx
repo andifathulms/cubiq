@@ -65,14 +65,15 @@ function prism(
     .map(([x, y]) => [x * scaleXY, y * scaleXY] as [number, number])
   const lo = pts.map(([x, y]) => [x, y, z0 + dz] as V3)
   const hi = pts.map(([x, y]) => [x, y, z1 + dz] as V3)
-  faces.push({ pts: [...hi].reverse(), color: capTop })
-  faces.push({ pts: lo, color: capBot })
+  // '' caps/sides are internal surfaces (inward-facing layer caps, the
+  // equator's caps, and piece-to-piece / piece-to-core cut faces). In a
+  // complete puzzle they tile against a neighbour, so drawing them at rest
+  // leaks plastic through the shell — a dark star across the middle and dark
+  // bands over the side walls. Emit them only when a piece is separated.
+  if (capTop || showInternal) faces.push({ pts: [...hi].reverse(), color: capTop || PLASTIC })
+  if (capBot || showInternal) faces.push({ pts: lo, color: capBot || PLASTIC })
   for (let i = 0; i < pts.length; i++) {
     const j = (i + 1) % pts.length
-    // '' side colors are the internal radial cut-faces (piece-to-piece and
-    // piece-to-core). They tile against a neighbour in a complete layer, so
-    // drawing them at rest paints a spurious dark star through the middle —
-    // only render them when the piece is actually separated (mid-slash).
     if (!sideColors[i] && !showInternal) continue
     faces.push({ pts: [lo[i], lo[j], hi[j], hi[i]], color: sideColors[i] || PLASTIC })
   }
@@ -90,8 +91,10 @@ function wedgeFaces(
     ? ['', sq1SideColor(wg.cells[0]), sq1SideColor(wg.cells[1]), '']
     : ['', sq1SideColor(wg.cells[0]), '']
   const [z0, z1] = wg.layer === 0 ? [Z_CUT, 1] : [-1, -Z_CUT]
+  // the sticker cap is on the outward end (top of upper layer / bottom of
+  // lower); the inward cap is internal ('') and suppressed unless separated
   prism(poly, z0, z1,
-    capOnTop ? cap : PLASTIC, capOnTop ? PLASTIC : cap,
+    capOnTop ? cap : '', capOnTop ? '' : cap,
     sides, 30 * (wg.slot - home) + rotDeg, dz, faces, scaleXY, separated)
 }
 
@@ -198,8 +201,9 @@ export function Sq1View3D({ setup, alg, height = 260 }: Props) {
     wedgeFaces(wg, rot, dz, capOnTop, faces, scale, carried)
   }
   const eqRot = 180 * s.eq + 180 * slashT
-  prism(EQ_WEST, -Z_CUT, Z_CUT, PLASTIC, PLASTIC, EQ_WEST_COLORS, eqRot, 0, faces)
-  prism(EQ_EAST, -Z_CUT, Z_CUT, PLASTIC, PLASTIC, EQ_EAST_COLORS, eqRot, 0, faces)
+  // equator caps are always internal (sandwiched between the two layers)
+  prism(EQ_WEST, -Z_CUT, Z_CUT, '', '', EQ_WEST_COLORS, eqRot, 0, faces)
+  prism(EQ_EAST, -Z_CUT, Z_CUT, '', '', EQ_EAST_COLORS, eqRot, 0, faces)
 
   // orthographic projection with painter's sorting
   const azr = (s.az * Math.PI) / 180
