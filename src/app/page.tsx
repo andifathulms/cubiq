@@ -1,7 +1,8 @@
 'use client'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Wand2 } from 'lucide-react'
 import { Navbar } from '@/components/layout/Navbar'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { MobileNav } from '@/components/layout/MobileNav'
@@ -18,6 +19,9 @@ const CubePreview3D = dynamic(
   () => import('@/components/scramble/CubePreview3D').then(m => m.CubePreview3D),
   { ssr: false, loading: () => <div style={{ width: 220, height: 220 }} /> }
 )
+
+// Puzzles that have a solver tab (everything except clock)
+const SOLVER_PUZZLES = new Set(['222', '333', '444', '555', 'pyram', 'skewb', 'minx', 'sq1'])
 
 function SolvePenaltyBar() {
   const { getActiveSession, updateSolve, deleteSolve } = useCubiqStore()
@@ -75,6 +79,7 @@ export default function TimerPage() {
     s => s.sessions.find(sess => sess.id === s.activeSessionId)?.puzzle ?? '333'
   )
   const [isHydrated, setIsHydrated] = useState(false)
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setIsHydrated(true), [])
 
   const hideScramble = timerState === 'running'
@@ -88,11 +93,25 @@ export default function TimerPage() {
         <main className="flex-1 flex flex-col overflow-y-auto pb-16 md:pb-0 relative">
           {/* Scramble area */}
           <div
-            className="flex items-center justify-center gap-2 pt-6 px-4 transition-opacity duration-200"
+            className="flex flex-col items-center gap-1 pt-6 px-4 transition-opacity duration-200"
             style={{ opacity: hideScramble ? 0 : 1, pointerEvents: hideScramble ? 'none' : 'auto' }}
           >
-            <ScrambleGenerator />
-            <ScrambleDisplay scramble={currentScramble} />
+            <div className="flex items-center justify-center gap-2">
+              <ScrambleGenerator />
+              <ScrambleDisplay scramble={currentScramble} />
+            </div>
+            {currentScramble && SOLVER_PUZZLES.has(activePuzzle) && (
+              <Link
+                href={`/solvers?puzzle=${activePuzzle}&scramble=${encodeURIComponent(currentScramble)}`}
+                className="flex items-center gap-1 text-xs font-medium transition-colors"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--accent-primary)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+              >
+                <Wand2 size={12} />
+                Solve this scramble →
+              </Link>
+            )}
           </div>
 
           {/* Timer area */}

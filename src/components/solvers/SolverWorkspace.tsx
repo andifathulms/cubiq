@@ -44,19 +44,27 @@ const TABS: Tab[] = [
 export function SolverWorkspace() {
   const [tab, setTab] = useState('333')
   const [scr333, setScr333] = useState('')
+  // A "Solve this" hand-off from the timer: seed the matching puzzle's solver.
+  const [incoming, setIncoming] = useState<{ puzzle: string; scramble: string } | null>(null)
 
-  // Deep-link support: /solvers?puzzle=333&scramble=... selects a tab and, for
-  // 3×3, loads the given scramble (e.g. "Solve this" from the timer). Read on
-  // mount so it's hydration-safe (window isn't available during SSR).
+  // Deep-link support: /solvers?puzzle=<id>&scramble=... selects a tab and loads
+  // the scramble into that puzzle's solver. Read on mount so it's hydration-safe.
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const q = new URLSearchParams(window.location.search)
     const p = q.get('puzzle')
     if (p && TABS.some(t => t.id === p)) setTab(p)
     const s = q.get('scramble')
-    if (s && (p ?? '333') === '333') setScr333(s)
+    if (s) {
+      const puzzle = p && TABS.some(t => t.id === p) ? p : '333'
+      if (puzzle === '333') setScr333(s)
+      else setIncoming({ puzzle, scramble: s })
+    }
   }, [])
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  // The scramble to seed the current puzzle's card with, if handed off
+  const seed = (id: string) => (incoming?.puzzle === id ? incoming.scramble : undefined)
 
   const active = TABS.find(t => t.id === tab)!
 
@@ -110,27 +118,27 @@ export function SolverWorkspace() {
           <OptimalSolverCard
             title="2×2 Optimal Solver"
             description="Every 2×2 position is precomputed (all 3.6M states), so solutions are provably optimal — never more than 11 moves."
-            puzzleType="222" endpoint="/solve/222" twistyId="2x2x2"
+            puzzleType="222" endpoint="/solve/222" twistyId="2x2x2" initialScramble={seed('222')}
           />
         )}
-        {tab === '444' && <Cube444SolverCard />}
-        {tab === '555' && <Cube555SolverCard />}
+        {tab === '444' && <Cube444SolverCard initialScramble={seed('444')} />}
+        {tab === '555' && <Cube555SolverCard initialScramble={seed('555')} />}
         {tab === 'pyram' && (
           <OptimalSolverCard
             title="Pyraminx Optimal Solver"
             description="The full 933k-state Pyraminx core is precomputed — optimal solutions of at most 11 moves, plus tip twists."
-            puzzleType="pyram" endpoint="/solve/pyram" twistyId="pyraminx"
+            puzzleType="pyram" endpoint="/solve/pyram" twistyId="pyraminx" initialScramble={seed('pyram')}
           />
         )}
         {tab === 'skewb' && (
           <OptimalSolverCard
             title="Skewb Optimal Solver"
             description="All 3,149,280 Skewb positions are precomputed — provably optimal solutions, never more than 11 moves."
-            puzzleType="skewb" endpoint="/solve/skewb" twistyId="skewb"
+            puzzleType="skewb" endpoint="/solve/skewb" twistyId="skewb" initialScramble={seed('skewb')}
           />
         )}
-        {tab === 'minx' && <MegaminxSolverCard />}
-        {tab === 'sq1' && <Sq1SolverCard />}
+        {tab === 'minx' && <MegaminxSolverCard initialScramble={seed('minx')} />}
+        {tab === 'sq1' && <Sq1SolverCard initialScramble={seed('sq1')} />}
         {tab === 'research' && (
           <>
             <p className="text-xs px-3 py-2 rounded-xl" style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}>

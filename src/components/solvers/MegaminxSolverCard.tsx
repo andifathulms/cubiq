@@ -50,24 +50,22 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-export function MegaminxSolverCard() {
-  const { settings, currentScramble } = useCubiqStore()
-  const activePuzzle = useCubiqStore(
-    s => s.sessions.find(sess => sess.id === s.activeSessionId)?.puzzle ?? '333'
-  )
-  const [scramble, setScramble] = useState('')
+export function MegaminxSolverCard({ initialScramble }: { initialScramble?: string } = {}) {
+  const settings = useCubiqStore(s => s.settings)
+  const [scramble, setScramble] = useState(initialScramble ?? '')
   const [solving, setSolving] = useState(false)
   const [result, setResult] = useState<MinxResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [anim, setAnim] = useState<{ setup: string; alg: string; label: string } | null>(null)
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (activePuzzle === 'minx' && currentScramble) {
-      setScramble(currentScramble)
-      setResult(null)
-      setAnim(null)
-    }
-  }, [activePuzzle, currentScramble])
+    if (initialScramble) { setScramble(initialScramble); setResult(null); setAnim(null) }
+  }, [initialScramble])
+  useEffect(() => {
+    setScramble(s => s || generateScramble('minx'))
+  }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function generate() {
     setScramble(generateScramble('minx'))
@@ -128,7 +126,6 @@ export function MegaminxSolverCard() {
           <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
             Layer-by-layer: star → corners → bands piece by piece (each placement optimal
             given the order), then a discovered-macro last layer.
-            {activePuzzle === 'minx' && ' Following your session scramble.'}
           </p>
 
           <div className="flex items-center gap-2">

@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Box, Loader, Play, RefreshCw, Copy, Check } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedCube } from '@/components/solvers/AnimatedCube'
@@ -52,14 +52,23 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-export function Cube444SolverCard() {
+export function Cube444SolverCard({ initialScramble }: { initialScramble?: string } = {}) {
   const { settings } = useCubiqStore()
-  const [scramble, setScramble] = useState('')
+  const [scramble, setScramble] = useState(initialScramble ?? '')
   const [generating, setGenerating] = useState(false)
   const [solving, setSolving] = useState(false)
   const [result, setResult] = useState<Result444 | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [anim, setAnim] = useState<{ setup: string; alg: string; label: string } | null>(null)
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (initialScramble) { setScramble(initialScramble); setResult(null); setAnim(null) }
+  }, [initialScramble])
+  useEffect(() => {
+    setScramble(s => s || generateScramble('444'))
+  }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function generate() {
     setGenerating(true)

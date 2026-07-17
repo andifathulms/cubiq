@@ -44,26 +44,23 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-export function Sq1SolverCard() {
-  const { settings, currentScramble } = useCubiqStore()
-  const activePuzzle = useCubiqStore(
-    s => s.sessions.find(sess => sess.id === s.activeSessionId)?.puzzle ?? '333'
-  )
-  const [scramble, setScramble] = useState('')
+export function Sq1SolverCard({ initialScramble }: { initialScramble?: string } = {}) {
+  const settings = useCubiqStore(s => s.settings)
+  const [scramble, setScramble] = useState(initialScramble ?? '')
   const [solving, setSolving] = useState(false)
   const [result, setResult] = useState<ResultSq1 | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [anim, setAnim] = useState<{ setup: string; alg: string; label: string } | null>(null)
   const [view3d, setView3d] = useState(true)
 
-  // Follow the timer scramble when a Square-1 session is active
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (activePuzzle === 'sq1' && currentScramble) {
-      setScramble(currentScramble)
-      setResult(null)
-      setAnim(null)
-    }
-  }, [activePuzzle, currentScramble])
+    if (initialScramble) { setScramble(initialScramble); setResult(null); setAnim(null) }
+  }, [initialScramble])
+  useEffect(() => {
+    setScramble(s => s || generateScramble('sq1'))
+  }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function generate() {
     setScramble(generateScramble('sq1'))
@@ -124,7 +121,6 @@ export function Sq1SolverCard() {
           <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
             Optimal-slash shape stage, then exact table descent: corners home, then edges
             with corner-preserving composites (including the parity bridge).
-            {activePuzzle === 'sq1' && ' Following your session scramble.'}
           </p>
 
           <div className="flex items-center gap-2">

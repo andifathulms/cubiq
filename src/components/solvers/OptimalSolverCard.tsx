@@ -20,6 +20,7 @@ interface Props {
   puzzleType: string      // session PuzzleType, e.g. '222' | 'pyram'
   endpoint: string        // e.g. '/solve/222'
   twistyId: string        // TwistyPlayer puzzle id, e.g. '2x2x2' | 'pyraminx'
+  initialScramble?: string  // seed from a "Solve this" hand-off
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -40,25 +41,25 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-export function OptimalSolverCard({ title, description, puzzleType, endpoint, twistyId }: Props) {
-  const { settings, currentScramble } = useCubiqStore()
-  const activePuzzle = useCubiqStore(
-    s => s.sessions.find(sess => sess.id === s.activeSessionId)?.puzzle ?? '333'
-  )
-  const [scramble, setScramble] = useState('')
+export function OptimalSolverCard({ title, description, puzzleType, endpoint, twistyId, initialScramble }: Props) {
+  const settings = useCubiqStore(s => s.settings)
+  const [scramble, setScramble] = useState(initialScramble ?? '')
   const [solving, setSolving] = useState(false)
   const [result, setResult] = useState<OptimalResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showAnim, setShowAnim] = useState(false)
 
-  // Follow the timer scramble when a matching session is active
+  // Seed from a "Solve this" hand-off, otherwise auto-generate one so a cube
+  // is always ready. Self-contained — no dependency on the timer session.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (activePuzzle === puzzleType && currentScramble) {
-      setScramble(currentScramble)
-      setResult(null)
-      setShowAnim(false)
-    }
-  }, [activePuzzle, currentScramble, puzzleType])
+    if (initialScramble) { setScramble(initialScramble); setResult(null); setShowAnim(false) }
+  }, [initialScramble])
+  useEffect(() => {
+    setScramble(s => s || generateScramble(puzzleType))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function generate() {
     setScramble(generateScramble(puzzleType))
@@ -109,7 +110,6 @@ export function OptimalSolverCard({ title, description, puzzleType, endpoint, tw
           </h3>
           <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
             {description}
-            {activePuzzle === puzzleType && ' Following your session scramble.'}
           </p>
 
           <div className="flex items-center gap-2">

@@ -151,6 +151,7 @@ export function MDPPanel() {
   }, [baseUrl])
 
   // ── Effects ────────────────────────────────────────────────────────────────
+  /* eslint-disable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     fetchStatus()
@@ -178,6 +179,7 @@ export function MDPPanel() {
       setKocResult(null)
     }
   }, [currentScramble, status?.trained, fetchPolicy])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
