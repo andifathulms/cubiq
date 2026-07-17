@@ -540,6 +540,195 @@ _CEPERM_INV = {m: tuple(np.argsort(np.array(cp)).tolist()) for m, cp in CEPERM.i
 
 OLL_PARITY = "2R2 B2 U2 2L U2 2R' U2 2R U2 F2 2R F2 2L' B2 2R2".split()
 
+# OLL_PARITY's support on the 5x5 is exactly two wing slots (verified at
+# import below). Conjugation g + P + g^-1 therefore swaps ANY two wings
+# tightly — everything g disturbs, g^-1 restores. The conjugator is found
+# by BFS over ALL moves (slices included) on ordered wing-slot pairs.
+def _parity_wing_slots() -> Tuple[int, int]:
+    st = apply_moves(SOLVED.copy(), OLL_PARITY)
+    changed = [wi for wi, (a, b) in enumerate(WING_SLOTS)
+               if st[a] != SOLVED[a] or st[b] != SOLVED[b]]
+    assert len(changed) == 2, changed
+    return changed[0], changed[1]
+
+
+_P_SLOTS = _parity_wing_slots()
+_ALL_LAYER_MOVES = OUTER_MOVES + SLICE_MOVES
+
+
+def _conjugator_to(pair_from: Tuple[int, int], pair_to: Tuple[int, int],
+                   max_depth: int = 8) -> Optional[List[str]]:
+    """Move sequence whose forward wing map takes pair_from onto pair_to."""
+    if pair_from == pair_to:
+        return []
+    prev = {pair_from: (pair_from, '')}
+    frontier = [pair_from]
+    for _ in range(max_depth):
+        nxt = []
+        for cur in frontier:
+            for m in _ALL_LAYER_MOVES:
+                inv = _WPERM_INV[m]
+                new = (inv[cur[0]], inv[cur[1]])
+                if new not in prev:
+                    prev[new] = (cur, m)
+                    if new == pair_to:
+                        path = []
+                        node = new
+                        while node != pair_from:
+                            node, mv = prev[node]
+                            path.append(mv)
+                        return list(reversed(path))
+                    nxt.append(new)
+        frontier = nxt
+    return None
+
+
+def _invert_seq(seq: List[str]) -> List[str]:
+    return [_inverse(m) for m in reversed(seq)]
+
+
+def _tight_swap(slot_a: int, slot_b: int) -> Optional[List[str]]:
+    """Sequence swapping exactly the wings at slot_a and slot_b."""
+    for target in (_P_SLOTS, (_P_SLOTS[1], _P_SLOTS[0])):
+        g = _conjugator_to((slot_a, slot_b), target)
+        if g is not None:
+            return g + OLL_PARITY + _invert_seq(g)
+    return None
+
+
+_ODD_NEUTRAL: Optional[List[str]] = None
+
+
+def _odd_neutral_macro() -> Optional[List[str]]:
+    """A centers-safe macro with ODD wing permutation — used to correct the
+    parity of a center repair without paying another repair."""
+    global _ODD_NEUTRAL
+    if _ODD_NEUTRAL is not None:
+        return _ODD_NEUTRAL
+    for m in _discover_macros():
+        if _wing_perm_parity(m['seq']) == 1:
+            _ODD_NEUTRAL = m['seq']
+            return _ODD_NEUTRAL
+    return None
+
+
+def _wing_perm_parity(seq: List[str]) -> int:
+    """Parity (0 even / 1 odd) of the wing permutation of a move sequence."""
+    perm = list(range(24))
+    for m in seq:
+        wp = WPERM[m]
+        perm = [perm[wp[i]] for i in range(24)]
+    par = 0
+    seen = [False] * 24
+    for i in range(24):
+        if seen[i]:
+            continue
+        ln = 0
+        j = i
+        while not seen[j]:
+            seen[j] = True
+            j = perm[j]
+            ln += 1
+        par ^= (ln - 1) & 1
+    return par
+
+
+def _tight_swap_variants(slot_a: int, slot_b: int, limit: int = 12):
+    """Yield several sequences all swapping exactly the wings at (a, b) but
+    via different conjugators — same wing effect, different (invisible)
+    center damage, so a failing center repair can try another variant."""
+    yielded = 0
+    for r in [None] + OUTER_MOVES:
+        if yielded >= limit:
+            return
+        if r is None:
+            a2, b2 = slot_a, slot_b
+            wrap, unwrap = [], []
+        else:
+            inv = _WPERM_INV[r]
+            a2, b2 = inv[slot_a], inv[slot_b]
+            wrap, unwrap = [r], [_inverse(r)]
+        core = _tight_swap(a2, b2)
+        if core is None:
+            continue
+        yielded += 1
+        yield wrap + core + unwrap
+
+
+# Rigid double-group flip: the 3x3 "flip UF and UB" alg in outer moves.
+# Groups travel rigidly under outer moves, so its 5x5 effect is exactly two
+# groups flipped in place (central edge flipped, wings mirrored) — generated
+# with kociemba rather than recalled from memory.
+_DOUBLE_FLIP: Optional[List[str]] = None
+_DF_GROUPS: Optional[Tuple[int, int]] = None
+
+
+def _double_flip_seed() -> Tuple[List[str], Tuple[int, int]]:
+    global _DOUBLE_FLIP, _DF_GROUPS
+    if _DOUBLE_FLIP is not None:
+        return _DOUBLE_FLIP, _DF_GROUPS
+    import kociemba
+    f = list('UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB')
+    f[7], f[19] = f[19], f[7]     # flip UF
+    f[1], f[46] = f[46], f[1]     # flip UB
+    sol = kociemba.solve(''.join(f)).split()
+    seed = _invert_seq(sol)       # applied to solved, produces the two flips
+    st = apply_moves(SOLVED.copy(), seed)
+    # a rigidly flipped group still LOOKS paired (all three pieces mirror
+    # together) — identify the operated groups geometrically: UF and UB
+    def _group_of_faces(fs):
+        for g, (ci, _, _) in enumerate(EDGE_GROUPS):
+            a, b = CEDGE_SLOTS[ci]
+            if {a // 25, b // 25} == fs:
+                return g
+        raise RuntimeError(fs)
+    gUF = _group_of_faces({FACES.index('U'), FACES.index('F')})
+    gUB = _group_of_faces({FACES.index('U'), FACES.index('B')})
+    assert centers_solved(st) and all_paired(st)
+    _DOUBLE_FLIP, _DF_GROUPS = seed, (gUF, gUB)
+    return _DOUBLE_FLIP, _DF_GROUPS
+
+
+def _ce_pair_conjugator(frm: Tuple[int, int], to: Tuple[int, int],
+                        max_depth: int = 7) -> Optional[List[str]]:
+    """Outer-only BFS mapping an ordered pair of GROUP positions onto
+    another (groups move rigidly under outer moves)."""
+    if frm == to:
+        return []
+    prev = {frm: (frm, '')}
+    frontier = [frm]
+    for _ in range(max_depth):
+        nxt = []
+        for cur in frontier:
+            for m in OUTER_MOVES:
+                ci = _CEPERM_INV[m]
+                new = (ci[cur[0]], ci[cur[1]])
+                if new not in prev:
+                    prev[new] = (cur, m)
+                    if new == to:
+                        path = []
+                        node = new
+                        while node != frm:
+                            node, mv = prev[node]
+                            path.append(mv)
+                        return list(reversed(path))
+                    nxt.append(new)
+        frontier = nxt
+    return None
+
+
+def _tight_double_flip(group_a: int, group_b: int) -> Optional[List[str]]:
+    """Sequence flipping exactly the edge groups at positions a and b."""
+    seed, (fa, fb) = _double_flip_seed()
+    ca, cb = EDGE_GROUPS[group_a][0], EDGE_GROUPS[group_b][0]
+    ta, tb = EDGE_GROUPS[fa][0], EDGE_GROUPS[fb][0]
+    for target in ((ta, tb), (tb, ta)):
+        h = _ce_pair_conjugator((ca, cb), target)
+        if h is not None:
+            return h + seed + _invert_seq(h)
+    return None
+
+
 _MACROS: Optional[List[dict]] = None
 
 
@@ -665,6 +854,28 @@ def _macro_wing_maps(macro: dict) -> Tuple[Tuple[int, ...], Tuple[int, ...]]:
     return macro['wperm'], macro['ceperm']
 
 
+def _loose_wing_slots(cur: np.ndarray) -> List[int]:
+    out = []
+    for gi, (ci, w1, w2) in enumerate(EDGE_GROUPS):
+        ca, cb = CEDGE_SLOTS[ci]
+        colors = {int(SOLVED[ca]), int(SOLVED[cb])}
+        ce_cur = None
+        for cj, (a, b) in enumerate(CEDGE_SLOTS):
+            if {int(cur[a]), int(cur[b])} == colors:
+                ce_cur = cj
+                break
+        if ce_cur is None:
+            continue
+        ce_ref = (int(cur[CEDGE_SLOTS[ce_cur][0]]), int(cur[CEDGE_SLOTS[ce_cur][1]]))
+        for wi, (a, b) in enumerate(WING_SLOTS):
+            if {int(cur[a]), int(cur[b])} == colors:
+                in_group = wi in EDGE_GROUPS[ce_cur][1:]
+                matches = (int(cur[a]), int(cur[b])) == ce_ref
+                if not (in_group and matches):
+                    out.append(wi)
+    return out
+
+
 def _pairing_candidates(cur: np.ndarray, macros: List[dict], base: int,
                         min_gain: int = 1, avoid: Optional[set] = None) -> Optional[dict]:
     """Attach one wing at a time: position (wing, its central edge) onto a
@@ -692,6 +903,7 @@ def _pairing_candidates(cur: np.ndarray, macros: List[dict], base: int,
                     loose.append((wi, ce_cur))
 
     best: Optional[dict] = None
+
     prune = min_gain >= 1
     bfs_memo: Dict[tuple, Optional[List[str]]] = {}
     for macro in macros:
@@ -906,7 +1118,7 @@ def _position_wing_ce(frm: Tuple[int, int], to: Tuple[int, int],
 
 
 def solve_pairing(state: np.ndarray, max_steps: int = 40,
-                  restarts: int = 4) -> Optional[List[dict]]:
+                  restarts: int = 2) -> Optional[List[dict]]:
     """Greedy wing attachment with randomized restarts: a rare cross-parity
     endgame can strand one greedy path, but rotating the macro preference
     changes the whole trajectory and dodges it."""
@@ -925,6 +1137,7 @@ def _solve_pairing_once(state: np.ndarray, macros: List[dict],
     stages: List[dict] = []
     cur = state.copy()
     shuffles = 0
+    parity_fixes = 0
     visited: set = set()
 
     for _step in range(max_steps):
@@ -940,7 +1153,7 @@ def _solve_pairing_once(state: np.ndarray, macros: List[dict],
             shuffles += 1
             visited.add(cur.tobytes())
             chosen = None
-            for _try in range(20):
+            for _try in range(8):
                 z = _pairing_candidates(cur, macros, base, min_gain=0, avoid=visited)
                 if z is None:
                     break
@@ -951,7 +1164,40 @@ def _solve_pairing_once(state: np.ndarray, macros: List[dict],
                     chosen = z
                     break
             if chosen is None:
-                return None
+                # LAST RESORT: conjugated-parity tight swap changes the wing
+                # parity (the unfixable obstruction), then centers re-solve
+                if parity_fixes >= 2:
+                    return None
+                loose_now = _loose_wing_slots(cur)
+                fixed = False
+                for i in range(len(loose_now)):
+                    for j in range(i + 1, len(loose_now)):
+                        for seq in _tight_swap_variants(loose_now[i], loose_now[j]):
+                            trial = apply_moves(cur.copy(), seq)
+                            if wings_attached(trial) <= base:
+                                continue
+                            repair = solve_centers(trial)
+                            if repair is None:
+                                continue
+                            rm = [m for st in repair for m in st['moves']]
+                            # the swap toggles wing parity (that's the point);
+                            # the repair must not toggle it back — try the
+                            # next conjugation variant if it does
+                            if _wing_perm_parity(seq + rm) != 1:
+                                continue
+                            cur = apply_moves(trial, rm)
+                            stages.append({'name': 'wing parity fix', 'kind': 'pairing',
+                                           'moves': seq + rm})
+                            parity_fixes += 1
+                            fixed = True
+                            break
+                        if fixed:
+                            break
+                    if fixed:
+                        break
+                if not fixed:
+                    return None
+                continue
             cur = chosen['state']
             stages.append({'name': 'reshape edges', 'kind': 'pairing', 'moves': chosen['moves']})
             continue
