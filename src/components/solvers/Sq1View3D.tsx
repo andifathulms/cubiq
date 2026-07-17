@@ -23,7 +23,7 @@ interface Face {
   stroke?: string
 }
 
-const PLASTIC = '#2e2e3a'
+const PLASTIC = '#3a3a48'
 // The cross-section square is rotated -15° from axis-aligned: the slash
 // cut runs north-south through two FACE points, so square corners sit at
 // 30°/120°/210°/300° and face centers at 75°/165°/255°/345° (which is
@@ -58,9 +58,10 @@ function rotCW(p: [number, number], deg: number): [number, number] {
 function prism(
   poly: [number, number][], z0: number, z1: number,
   capTop: string, capBot: string, sideColors: string[],
-  rotDeg: number, dz: number, faces: Face[],
+  rotDeg: number, dz: number, faces: Face[], scaleXY = 1,
 ) {
   const pts = poly.map(p => rotCW(p, rotDeg))
+    .map(([x, y]) => [x * scaleXY, y * scaleXY] as [number, number])
   const lo = pts.map(([x, y]) => [x, y, z0 + dz] as V3)
   const hi = pts.map(([x, y]) => [x, y, z1 + dz] as V3)
   faces.push({ pts: [...hi].reverse(), color: capTop })
@@ -73,6 +74,7 @@ function prism(
 
 function wedgeFaces(
   wg: Sq1Wedge, rotDeg: number, dz: number, capOnTop: boolean, faces: Face[],
+  scaleXY = 1,
 ) {
   const isCorner = wg.cells.length === 2
   const poly = isCorner ? CORNER_POLY : EDGE_POLY
@@ -84,7 +86,7 @@ function wedgeFaces(
   const [z0, z1] = wg.layer === 0 ? [Z_CUT, 1] : [-1, -Z_CUT]
   prism(poly, z0, z1,
     capOnTop ? cap : PLASTIC, capOnTop ? PLASTIC : cap,
-    sides, 30 * (wg.slot - home) + rotDeg, dz, faces)
+    sides, 30 * (wg.slot - home) + rotDeg, dz, faces, scaleXY)
 }
 
 interface Props {
@@ -177,12 +179,15 @@ export function Sq1View3D({ setup, alg, height = 260 }: Props) {
     let rot = wg.layer === 0 ? rotTop : rotBot
     let dz = 0
     let capOnTop = wg.layer === 0
+    let scale = 1
     if (carried) {
       rot = 180 * slashT
       dz = (wg.layer === 0 ? -1 : 1) * (4 / 3) * slashT
+      // swing around the OUTSIDE of the puzzle, not through the equator
+      scale = 1 + 0.8 * Math.sin(Math.PI * slashT)
       if (slashT > 0.5) capOnTop = wg.layer !== 0
     }
-    wedgeFaces(wg, rot, dz, capOnTop, faces)
+    wedgeFaces(wg, rot, dz, capOnTop, faces, scale)
   }
   const eqRot = 180 * s.eq + 180 * slashT
   prism(EQ_WEST, -Z_CUT, Z_CUT, PLASTIC, PLASTIC, EQ_WEST_COLORS, eqRot, 0, faces)
@@ -238,7 +243,7 @@ export function Sq1View3D({ setup, alg, height = 260 }: Props) {
         area,
         path: `M ${pr.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ')} Z`,
         color: f.color,
-        shade: Math.min(0.5, 0.55 * (1 - Math.min(1, lit))),
+        shade: Math.min(0.32, 0.4 * (1 - Math.min(1, lit))),
       }
     })
     .filter(f => f.area < 0)
