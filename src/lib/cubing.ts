@@ -115,12 +115,47 @@ function generateMinx(): string {
   return lines.join(' ')
 }
 
+// Square-1 legal scrambles need a shape simulator: corners span two wedge
+// slots, and a slash is only legal when no corner straddles a cut boundary.
+// Types per slot: 0 = corner-first (partner sits in the next slot),
+// 1 = corner-second, 2 = edge. Mirrors cubiq-ml/solversq1.py exactly.
 function generateSq1(): string {
-  const parts: string[] = []
-  for (let i = 0; i < 11; i++) {
-    const top = Math.floor(Math.random() * 12) - 5
-    const bot = Math.floor(Math.random() * 12) - 5
-    parts.push(`(${top},${bot})`)
+  let t: number[] = []
+  for (let i = 0; i < 8; i++) t.push(0, 1, 2)
+
+  const rot = (arr: number[], off: number, u: number) =>
+    Array.from({ length: 12 }, (_, i) => arr[off + ((i - u + 24) % 12)])
+
+  const twistTypes = (arr: number[], u: number, d: number) =>
+    [...rot(arr, 0, u), ...rot(arr, 12, d)]
+
+  // a layer offset is slashable when neither cut boundary splits a corner
+  const topOk = (arr: number[]) => arr[5] !== 0 && arr[11] !== 0
+  const botOk = (arr: number[]) => arr[17] !== 0 && arr[23] !== 0
+
+  const norm = (x: number) => {
+    x = ((x % 12) + 12) % 12
+    return x > 6 ? x - 12 : x
   }
-  return parts.join('/ ') + '/'
+
+  const parts: string[] = []
+  for (let i = 0; i < 12; i++) {
+    const options: Array<[number, number]> = []
+    for (let u = 0; u < 12; u++) {
+      if (!topOk(twistTypes(t, u, 0))) continue
+      for (let d = 0; d < 12; d++) {
+        if ((u === 0 && d === 0) || !botOk(twistTypes(t, 0, d))) continue
+        options.push([u, d])
+      }
+    }
+    const [u, d] = options[Math.floor(Math.random() * options.length)]
+    t = twistTypes(t, u, d)
+    for (let k = 0; k < 6; k++) {
+      const tmp = t[6 + k]
+      t[6 + k] = t[12 + k]
+      t[12 + k] = tmp
+    }
+    parts.push(`(${norm(u)},${norm(d)}) /`)
+  }
+  return parts.join(' ')
 }

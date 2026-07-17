@@ -8,6 +8,7 @@ import { CFOPSolverCard } from '@/components/solvers/CFOPSolverCard'
 import { Cube444SolverCard } from '@/components/solvers/Cube444SolverCard'
 import { Cube555SolverCard } from '@/components/solvers/Cube555SolverCard'
 import { MegaminxSolverCard } from '@/components/solvers/MegaminxSolverCard'
+import { Sq1SolverCard } from '@/components/solvers/Sq1SolverCard'
 import { OptimalSolverCard } from '@/components/solvers/OptimalSolverCard'
 import { MDPPanel } from '@/components/solvers/MDPPanel'
 
@@ -76,6 +77,8 @@ export default function SolversPage() {
             <Cube555SolverCard />
 
             <MegaminxSolverCard />
+
+            <Sq1SolverCard />
 
             <MLSolverCard />
 
