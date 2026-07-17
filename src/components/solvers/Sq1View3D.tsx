@@ -42,11 +42,15 @@ function rotZ(p: V3, d: number): V3 {
   const c = Math.cos(rad(d)), s = Math.sin(rad(d))
   return [p[0] * c + p[1] * s, -p[0] * s + p[1] * c, p[2]]
 }
-function rotY(p: V3, d: number): V3 {   // about the horizontal north-south axis
+function rotY(p: V3, d: number): V3 {   // about the vertical-plane north-south axis
   const c = Math.cos(rad(d)), s = Math.sin(rad(d))
   return [p[0] * c + p[2] * s, p[1], -p[0] * s + p[2] * c]
 }
-const rx180 = (p: V3): V3 => [p[0], -p[1], -p[2]]
+function rotX(p: V3, d: number): V3 {   // about the horizontal east-west axis
+  const c = Math.cos(rad(d)), s = Math.sin(rad(d))
+  return [p[0], p[1] * c - p[2] * s, p[1] * s + p[2] * c]
+}
+const flipToBottom = (p: V3): V3 => rotY(p, 180)   // (x,y,z) → (-x,y,-z)
 
 function zoneColor(x: number, y: number): string {
   const a = (Math.atan2(x, y) * 180 / Math.PI + 360) % 360
@@ -57,10 +61,11 @@ function zoneColor(x: number, y: number): string {
 }
 
 // One prism per wedge. Built in "top style" (rotated to its slot, extruded
-// z = Z_CUT..1); a bottom-layer wedge is that rotated 180° about X, so the
-// slash — a 180° rotation about Y — maps a top wedge exactly onto its bottom
-// counterpart. `role`: 'cap' is the outward sticker cap; a number i is the
-// side quad from cross-section vertex i to i+1.
+// z = Z_CUT..1); a bottom-layer wedge is that rotated 180° about Y. The slash
+// is then a rigid 180° rotation about the horizontal east-west (X) axis, which
+// preserves each piece's x — so the moving half sweeps within its own slab and
+// clears the stationary half instead of cutting through it. `role`: 'cap' is
+// the outward sticker cap; a number i is the side quad from vertex i to i+1.
 function wedgePrism(cell: number, slot: number, layer: 0 | 1, twistDeg: number,
                     slashDeg: number): { pts: V3[]; role: 'cap' | number }[] {
   const corner = CORNER_FIRST.has(cell)
@@ -69,8 +74,8 @@ function wedgePrism(cell: number, slot: number, layer: 0 | 1, twistDeg: number,
   const base = poly.map(p => rotZ(p, 30 * (slot - home) + twistDeg))
   let lo = base.map(p => [p[0], p[1], Z_CUT] as V3)
   let hi = base.map(p => [p[0], p[1], 1] as V3)
-  if (layer === 1) { lo = lo.map(rx180); hi = hi.map(rx180) }
-  if (slashDeg) { lo = lo.map(p => rotY(p, slashDeg)); hi = hi.map(p => rotY(p, slashDeg)) }
+  if (layer === 1) { lo = lo.map(flipToBottom); hi = hi.map(flipToBottom) }
+  if (slashDeg) { lo = lo.map(p => rotX(p, slashDeg)); hi = hi.map(p => rotX(p, slashDeg)) }
   const out: { pts: V3[]; role: 'cap' | number }[] = [{ pts: [...hi].reverse(), role: 'cap' }]
   for (let i = 0; i < base.length; i++) {
     const j = (i + 1) % base.length
@@ -98,10 +103,11 @@ for (let cell = 0; cell < 24; cell++) {
   SIDE_COLOR.set(cell, sides)
 }
 
-// Equator half as a prism; only its outer arc walls carry stickers.
+// Equator half as a prism; only its outer arc walls carry stickers. It flips
+// about the same X axis as the slash.
 function eqPrism(poly: V3[], eqDeg: number): { pts: V3[]; color: string }[] {
-  const lo = poly.map(p => rotY([p[0], p[1], -Z_CUT], eqDeg))
-  const hi = poly.map(p => rotY([p[0], p[1], Z_CUT], eqDeg))
+  const lo = poly.map(p => rotX([p[0], p[1], -Z_CUT], eqDeg))
+  const hi = poly.map(p => rotX([p[0], p[1], Z_CUT], eqDeg))
   const out: { pts: V3[]; color: string }[] = []
   for (let i = 0; i < poly.length; i++) {
     const j = (i + 1) % poly.length
