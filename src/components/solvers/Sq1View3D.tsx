@@ -59,6 +59,7 @@ function prism(
   poly: [number, number][], z0: number, z1: number,
   capTop: string, capBot: string, sideColors: string[],
   rotDeg: number, dz: number, faces: Face[], scaleXY = 1,
+  showInternal = false,
 ) {
   const pts = poly.map(p => rotCW(p, rotDeg))
     .map(([x, y]) => [x * scaleXY, y * scaleXY] as [number, number])
@@ -68,13 +69,18 @@ function prism(
   faces.push({ pts: lo, color: capBot })
   for (let i = 0; i < pts.length; i++) {
     const j = (i + 1) % pts.length
+    // '' side colors are the internal radial cut-faces (piece-to-piece and
+    // piece-to-core). They tile against a neighbour in a complete layer, so
+    // drawing them at rest paints a spurious dark star through the middle —
+    // only render them when the piece is actually separated (mid-slash).
+    if (!sideColors[i] && !showInternal) continue
     faces.push({ pts: [lo[i], lo[j], hi[j], hi[i]], color: sideColors[i] || PLASTIC })
   }
 }
 
 function wedgeFaces(
   wg: Sq1Wedge, rotDeg: number, dz: number, capOnTop: boolean, faces: Face[],
-  scaleXY = 1,
+  scaleXY = 1, separated = false,
 ) {
   const isCorner = wg.cells.length === 2
   const poly = isCorner ? CORNER_POLY : EDGE_POLY
@@ -86,7 +92,7 @@ function wedgeFaces(
   const [z0, z1] = wg.layer === 0 ? [Z_CUT, 1] : [-1, -Z_CUT]
   prism(poly, z0, z1,
     capOnTop ? cap : PLASTIC, capOnTop ? PLASTIC : cap,
-    sides, 30 * (wg.slot - home) + rotDeg, dz, faces, scaleXY)
+    sides, 30 * (wg.slot - home) + rotDeg, dz, faces, scaleXY, separated)
 }
 
 interface Props {
@@ -187,7 +193,9 @@ export function Sq1View3D({ setup, alg, height = 260 }: Props) {
       scale = 1 + 0.8 * Math.sin(Math.PI * slashT)
       if (slashT > 0.5) capOnTop = wg.layer !== 0
     }
-    wedgeFaces(wg, rot, dz, capOnTop, faces, scale)
+    // a whole layer stays solid while twisting; only pieces lifted out by a
+    // slash actually expose their internal cut faces
+    wedgeFaces(wg, rot, dz, capOnTop, faces, scale, carried)
   }
   const eqRot = 180 * s.eq + 180 * slashT
   prism(EQ_WEST, -Z_CUT, Z_CUT, PLASTIC, PLASTIC, EQ_WEST_COLORS, eqRot, 0, faces)
