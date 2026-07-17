@@ -54,12 +54,12 @@ function rotCW(p: [number, number], deg: number): [number, number] {
 }
 
 // prism from a cross-section: top/bottom caps + side quads. sideColors[i]
-// colors the quad from poly[i] to poly[i+1]; '' caps/sides are internal
-// surfaces (inward layer caps, the equator's caps, piece cut faces) and are
-// emitted as PLASTIC. Every face is always emitted; the two-pass renderer
-// draws all plastic first and colored stickers on top, so exterior colour
-// always wins (no star, no dark walls) while plastic backs every interior
-// view (no see-through when orbiting or mid-solve).
+// colours the quad from poly[i] to poly[i+1]. Only STICKERED faces are
+// emitted ('' caps/sides are internal and skipped) — the puzzle is modelled
+// as its outer shell. The renderer draws that shell double-sided (a face's
+// back shows as dark interior plastic), so orbiting to any angle or a
+// mid-solve shape never sees through to the background, while there are no
+// internal faces to poke out as a star or dark band.
 function prism(
   poly: [number, number][], z0: number, z1: number,
   capTop: string, capBot: string, sideColors: string[],
@@ -69,11 +69,12 @@ function prism(
     .map(([x, y]) => [x * scaleXY, y * scaleXY] as [number, number])
   const lo = pts.map(([x, y]) => [x, y, z0 + dz] as V3)
   const hi = pts.map(([x, y]) => [x, y, z1 + dz] as V3)
-  faces.push({ pts: [...hi].reverse(), color: capTop || PLASTIC })
-  faces.push({ pts: lo, color: capBot || PLASTIC })
+  if (capTop) faces.push({ pts: [...hi].reverse(), color: capTop })
+  if (capBot) faces.push({ pts: lo, color: capBot })
   for (let i = 0; i < pts.length; i++) {
+    if (!sideColors[i]) continue
     const j = (i + 1) % pts.length
-    faces.push({ pts: [lo[i], lo[j], hi[j], hi[i]], color: sideColors[i] || PLASTIC })
+    faces.push({ pts: [lo[i], lo[j], hi[j], hi[i]], color: sideColors[i] })
   }
 }
 
@@ -244,26 +245,22 @@ export function Sq1View3D({ setup, alg, height = 260 }: Props) {
     const ny1 = (nx * sa + ny * ca) / nl
     const nDepth = ny1 * ce - (nz / nl) * se
     const nUp = (nz / nl) * ce + ny1 * se
-    const lit = Math.max(0, -nDepth) * 0.55 + Math.max(0, nUp) * 0.45
+    const lit = Math.max(0, Math.abs(nDepth)) * 0.55 + Math.max(0, nUp) * 0.45
+    // Double-sided: a camera-facing face (area < 0) shows its sticker; a face
+    // turned away shows dark interior plastic. So every silhouette is backed —
+    // orbiting or a mid-solve shape never reveals the background — with no
+    // internal geometry that could poke through as a star or dark band.
+    const front = area < 0
     return {
       d: pr.reduce((a, p) => a + p.d, 0) / pr.length,
-      area,
-      isPlastic: f.color === PLASTIC,
       path: `M ${pr.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ')} Z`,
-      color: f.color,
-      shade: Math.min(0.32, 0.4 * (1 - Math.min(1, lit))),
+      color: front ? f.color : PLASTIC,
+      shade: Math.min(0.34, 0.42 * (1 - Math.min(1, lit))) + (front ? 0 : 0.12),
     }
   })
-  // Two passes: interior plastic first (double-sided — never culled, so it
-  // backs every hole when orbiting or mid-solve), then exterior colour on top
-  // (culled to camera-facing). Colour wins wherever the surface is a sticker,
-  // and plastic fills anywhere you'd otherwise see through the shell. Each
-  // pass is painter-sorted far-to-near.
-  const byDepth = (a: { d: number }, b: { d: number }) => b.d - a.d
-  const drawn = [
-    ...projected.filter(f => f.isPlastic).sort(byDepth),
-    ...projected.filter(f => !f.isPlastic && f.area < 0).sort(byDepth),
-  ]
+  // painter's, far-to-near: larger d is nearer, so ascending draws the far
+  // (interior/back) faces first and the near stickers last, on top.
+  const drawn = projected.sort((a, b) => a.d - b.d)
 
   return (
     <div className="w-full flex flex-col items-center gap-1">
