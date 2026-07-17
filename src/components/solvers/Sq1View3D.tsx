@@ -53,35 +53,33 @@ function rotCW(p: [number, number], deg: number): [number, number] {
   return [p[0] * c + p[1] * s, -p[0] * s + p[1] * c]
 }
 
-// prism from a cross-section: top/bottom caps + side quads.
-// sideColors[i] colors the quad from poly[i] to poly[i+1] ('' = plastic).
+// prism from a cross-section: top/bottom caps + side quads. sideColors[i]
+// colors the quad from poly[i] to poly[i+1]; '' caps/sides are internal
+// surfaces (inward layer caps, the equator's caps, piece cut faces) and are
+// emitted as PLASTIC. Every face is always emitted; the two-pass renderer
+// draws all plastic first and colored stickers on top, so exterior colour
+// always wins (no star, no dark walls) while plastic backs every interior
+// view (no see-through when orbiting or mid-solve).
 function prism(
   poly: [number, number][], z0: number, z1: number,
   capTop: string, capBot: string, sideColors: string[],
   rotDeg: number, dz: number, faces: Face[], scaleXY = 1,
-  showInternal = false,
 ) {
   const pts = poly.map(p => rotCW(p, rotDeg))
     .map(([x, y]) => [x * scaleXY, y * scaleXY] as [number, number])
   const lo = pts.map(([x, y]) => [x, y, z0 + dz] as V3)
   const hi = pts.map(([x, y]) => [x, y, z1 + dz] as V3)
-  // '' caps/sides are internal surfaces (inward-facing layer caps, the
-  // equator's caps, and piece-to-piece / piece-to-core cut faces). In a
-  // complete puzzle they tile against a neighbour, so drawing them at rest
-  // leaks plastic through the shell — a dark star across the middle and dark
-  // bands over the side walls. Emit them only when a piece is separated.
-  if (capTop || showInternal) faces.push({ pts: [...hi].reverse(), color: capTop || PLASTIC })
-  if (capBot || showInternal) faces.push({ pts: lo, color: capBot || PLASTIC })
+  faces.push({ pts: [...hi].reverse(), color: capTop || PLASTIC })
+  faces.push({ pts: lo, color: capBot || PLASTIC })
   for (let i = 0; i < pts.length; i++) {
     const j = (i + 1) % pts.length
-    if (!sideColors[i] && !showInternal) continue
     faces.push({ pts: [lo[i], lo[j], hi[j], hi[i]], color: sideColors[i] || PLASTIC })
   }
 }
 
 function wedgeFaces(
   wg: Sq1Wedge, rotDeg: number, dz: number, capOnTop: boolean, faces: Face[],
-  scaleXY = 1, separated = false,
+  scaleXY = 1,
 ) {
   const isCorner = wg.cells.length === 2
   const poly = isCorner ? CORNER_POLY : EDGE_POLY
@@ -92,10 +90,10 @@ function wedgeFaces(
     : ['', sq1SideColor(wg.cells[0]), '']
   const [z0, z1] = wg.layer === 0 ? [Z_CUT, 1] : [-1, -Z_CUT]
   // the sticker cap is on the outward end (top of upper layer / bottom of
-  // lower); the inward cap is internal ('') and suppressed unless separated
+  // lower); the inward cap is internal ('' → plastic)
   prism(poly, z0, z1,
     capOnTop ? cap : '', capOnTop ? '' : cap,
-    sides, 30 * (wg.slot - home) + rotDeg, dz, faces, scaleXY, separated)
+    sides, 30 * (wg.slot - home) + rotDeg, dz, faces, scaleXY)
 }
 
 interface Props {
@@ -196,9 +194,7 @@ export function Sq1View3D({ setup, alg, height = 260 }: Props) {
       scale = 1 + 0.8 * Math.sin(Math.PI * slashT)
       if (slashT > 0.5) capOnTop = wg.layer !== 0
     }
-    // a whole layer stays solid while twisting; only pieces lifted out by a
-    // slash actually expose their internal cut faces
-    wedgeFaces(wg, rot, dz, capOnTop, faces, scale, carried)
+    wedgeFaces(wg, rot, dz, capOnTop, faces, scale)
   }
   const eqRot = 180 * s.eq + 180 * slashT
   // equator caps are always internal (sandwiched between the two layers)
@@ -226,40 +222,48 @@ export function Sq1View3D({ setup, alg, height = 260 }: Props) {
     }
   }
 
-  const drawn = faces
-    .map(f => {
-      const pr = f.pts.map(project)
-      // screen-space winding for backface culling (positive area = facing away)
-      let area = 0
-      for (let i = 0; i < pr.length; i++) {
-        const j = (i + 1) % pr.length
-        area += pr[i].x * pr[j].y - pr[j].x * pr[i].y
-      }
-      // Newell normal (consistent CCW-from-outside winding → points outward)
-      let nx = 0, ny = 0, nz = 0
-      for (let i = 0; i < f.pts.length; i++) {
-        const a = f.pts[i]
-        const b = f.pts[(i + 1) % f.pts.length]
-        nx += (a[1] - b[1]) * (a[2] + b[2])
-        ny += (a[2] - b[2]) * (a[0] + b[0])
-        nz += (a[0] - b[0]) * (a[1] + b[1])
-      }
-      const nl = Math.hypot(nx, ny, nz) || 1
-      // camera-attached light: brightest facing the camera, bonus for facing up
-      const ny1 = (nx * sa + ny * ca) / nl
-      const nDepth = ny1 * ce - (nz / nl) * se
-      const nUp = (nz / nl) * ce + ny1 * se
-      const lit = Math.max(0, -nDepth) * 0.55 + Math.max(0, nUp) * 0.45
-      return {
-        d: pr.reduce((a, p) => a + p.d, 0) / pr.length,
-        area,
-        path: `M ${pr.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ')} Z`,
-        color: f.color,
-        shade: Math.min(0.32, 0.4 * (1 - Math.min(1, lit))),
-      }
-    })
-    .filter(f => f.area < 0)
-    .sort((a, b) => b.d - a.d)
+  const projected = faces.map(f => {
+    const pr = f.pts.map(project)
+    // screen-space winding for backface culling (positive area = facing away)
+    let area = 0
+    for (let i = 0; i < pr.length; i++) {
+      const j = (i + 1) % pr.length
+      area += pr[i].x * pr[j].y - pr[j].x * pr[i].y
+    }
+    // Newell normal (consistent CCW-from-outside winding → points outward)
+    let nx = 0, ny = 0, nz = 0
+    for (let i = 0; i < f.pts.length; i++) {
+      const a = f.pts[i]
+      const b = f.pts[(i + 1) % f.pts.length]
+      nx += (a[1] - b[1]) * (a[2] + b[2])
+      ny += (a[2] - b[2]) * (a[0] + b[0])
+      nz += (a[0] - b[0]) * (a[1] + b[1])
+    }
+    const nl = Math.hypot(nx, ny, nz) || 1
+    // camera-attached light: brightest facing the camera, bonus for facing up
+    const ny1 = (nx * sa + ny * ca) / nl
+    const nDepth = ny1 * ce - (nz / nl) * se
+    const nUp = (nz / nl) * ce + ny1 * se
+    const lit = Math.max(0, -nDepth) * 0.55 + Math.max(0, nUp) * 0.45
+    return {
+      d: pr.reduce((a, p) => a + p.d, 0) / pr.length,
+      area,
+      isPlastic: f.color === PLASTIC,
+      path: `M ${pr.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ')} Z`,
+      color: f.color,
+      shade: Math.min(0.32, 0.4 * (1 - Math.min(1, lit))),
+    }
+  })
+  // Two passes: interior plastic first (double-sided — never culled, so it
+  // backs every hole when orbiting or mid-solve), then exterior colour on top
+  // (culled to camera-facing). Colour wins wherever the surface is a sticker,
+  // and plastic fills anywhere you'd otherwise see through the shell. Each
+  // pass is painter-sorted far-to-near.
+  const byDepth = (a: { d: number }, b: { d: number }) => b.d - a.d
+  const drawn = [
+    ...projected.filter(f => f.isPlastic).sort(byDepth),
+    ...projected.filter(f => !f.isPlastic && f.area < 0).sort(byDepth),
+  ]
 
   return (
     <div className="w-full flex flex-col items-center gap-1">
