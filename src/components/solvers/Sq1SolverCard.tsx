@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { CircleDot, Loader, Play, RefreshCw, Copy, Check } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
-import { AnimatedCube } from '@/components/solvers/AnimatedCube'
+import { Sq1AnimatedView } from '@/components/solvers/Sq1AnimatedView'
 import { generateScramble } from '@/lib/cubing'
 import { useCubiqStore } from '@/store'
 
@@ -228,7 +228,7 @@ export function Sq1SolverCard() {
                   Close
                 </button>
               </div>
-              <AnimatedCube setup={anim.setup} alg={anim.alg} puzzle="square1" />
+              <Sq1AnimatedView setup={anim.setup} alg={anim.alg} />
             </div>
           )}
         </div>
