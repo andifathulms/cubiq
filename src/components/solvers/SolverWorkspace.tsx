@@ -9,6 +9,7 @@ import { Sq1SolverCard } from '@/components/solvers/Sq1SolverCard'
 import { OptimalSolverCard } from '@/components/solvers/OptimalSolverCard'
 import { MLSolverCard } from '@/components/solvers/MLSolverCard'
 import { MDPPanel } from '@/components/solvers/MDPPanel'
+import { ScramblePanel } from '@/components/solvers/ScramblePanel'
 
 const CrossSolver = dynamic(
   () => import('@/components/solvers/CrossSolver').then(m => m.CrossSolver),
@@ -42,12 +43,20 @@ const TABS: Tab[] = [
 
 export function SolverWorkspace() {
   const [tab, setTab] = useState('333')
+  const [scr333, setScr333] = useState('')
 
-  // Deep-link support: /solvers?puzzle=333 selects a tab on load
+  // Deep-link support: /solvers?puzzle=333&scramble=... selects a tab and, for
+  // 3×3, loads the given scramble (e.g. "Solve this" from the timer). Read on
+  // mount so it's hydration-safe (window isn't available during SSR).
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    const p = new URLSearchParams(window.location.search).get('puzzle')
+    const q = new URLSearchParams(window.location.search)
+    const p = q.get('puzzle')
     if (p && TABS.some(t => t.id === p)) setTab(p)
+    const s = q.get('scramble')
+    if (s && (p ?? '333') === '333') setScr333(s)
   }, [])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const active = TABS.find(t => t.id === tab)!
 
@@ -91,9 +100,10 @@ export function SolverWorkspace() {
       <div className="flex flex-col gap-6">
         {tab === '333' && (
           <>
-            <CrossSolver />
-            <CFOPSolverCard />
-            <MLSolverCard />
+            <ScramblePanel puzzle="333" twistyId="3x3x3" scramble={scr333} onScramble={setScr333} />
+            <CrossSolver scramble={scr333} />
+            <CFOPSolverCard scramble={scr333} />
+            <MLSolverCard scramble={scr333} />
           </>
         )}
         {tab === '222' && (

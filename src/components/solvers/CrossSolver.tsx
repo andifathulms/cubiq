@@ -50,8 +50,9 @@ interface XCrossSolution {
   alternatives: string[][]
 }
 
-function SolutionRow({ sol, onAnimate }: { sol: CrossSolution; onAnimate: (alg: string) => void }) {
-  const { settings, currentScramble } = useCubiqStore()
+function SolutionRow({ sol, scramble, onAnimate }: { sol: CrossSolution; scramble: string; onAnimate: (alg: string) => void }) {
+  const { settings } = useCubiqStore()
+  const currentScramble = scramble
   const [showAlts, setShowAlts] = useState(false)
   const [xcross, setXcross] = useState<XCrossSolution[] | null>(null)
   const [xcrossOpen, setXcrossOpen] = useState(false)
@@ -193,12 +194,15 @@ function SolutionRow({ sol, onAnimate }: { sol: CrossSolution; onAnimate: (alg: 
   )
 }
 
-export function CrossSolver() {
-  const { currentScramble } = useCubiqStore()
+export function CrossSolver({ scramble }: { scramble?: string } = {}) {
+  const storeScramble = useCubiqStore(s => s.currentScramble)
   const activePuzzle = useCubiqStore(
     s => s.sessions.find(sess => sess.id === s.activeSessionId)?.puzzle ?? '333'
   )
-  const is3x3 = activePuzzle === '333'
+  // When a scramble is passed (solver page), the solver is self-contained and
+  // always 3×3; otherwise it follows the active timer session.
+  const currentScramble = scramble ?? storeScramble
+  const is3x3 = scramble !== undefined || activePuzzle === '333'
   const [solutions, setSolutions] = useState<CrossSolution[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -220,12 +224,14 @@ export function CrossSolver() {
     }
   }, [])
 
-  // Auto-solve when scramble changes (3x3 sessions only)
+  // Auto-solve when the scramble changes (solve() sets loading synchronously)
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (is3x3 && currentScramble && currentScramble !== lastSolvedScramble) {
       solve(currentScramble)
     }
   }, [currentScramble, lastSolvedScramble, solve, is3x3])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!is3x3) {
     return (
@@ -281,7 +287,7 @@ export function CrossSolver() {
 
       {!currentScramble && !loading && (
         <p className="text-sm text-center py-6" style={{ color: 'var(--text-muted)' }}>
-          Go to the Timer page to generate a scramble first
+          Generate a scramble to solve.
         </p>
       )}
 
@@ -302,7 +308,7 @@ export function CrossSolver() {
           {[...solutions]
             .sort((a, b) => a.move_count - b.move_count)
             .map(sol => (
-              <SolutionRow key={sol.face} sol={sol} onAnimate={handleAnimate} />
+              <SolutionRow key={sol.face} sol={sol} scramble={currentScramble} onAnimate={handleAnimate} />
             ))}
         </div>
       )}

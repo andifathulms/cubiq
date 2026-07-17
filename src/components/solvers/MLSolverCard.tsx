@@ -30,8 +30,10 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-export function MLSolverCard() {
-  const { settings, updateSettings, currentScramble } = useCubiqStore()
+export function MLSolverCard({ scramble }: { scramble?: string } = {}) {
+  const { settings, updateSettings } = useCubiqStore()
+  const storeScramble = useCubiqStore(s => s.currentScramble)
+  const currentScramble = scramble ?? storeScramble
   const [status, setStatus] = useState<ServiceStatus>('idle')
   const [serviceInfo, setServiceInfo] = useState<{ model?: string; version?: string } | null>(null)
   const [urlInput, setUrlInput] = useState(settings.ml_service_url)
@@ -195,7 +197,7 @@ export function MLSolverCard() {
 
           {!currentScramble && !solving && (
             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              Generate a scramble on the Timer page first.
+              Generate a scramble to solve.
             </p>
           )}
 

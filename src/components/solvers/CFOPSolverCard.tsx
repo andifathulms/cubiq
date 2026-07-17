@@ -49,12 +49,14 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-export function CFOPSolverCard() {
-  const { settings, currentScramble } = useCubiqStore()
+export function CFOPSolverCard({ scramble }: { scramble?: string } = {}) {
+  const settings = useCubiqStore(s => s.settings)
+  const storeScramble = useCubiqStore(s => s.currentScramble)
   const activePuzzle = useCubiqStore(
     s => s.sessions.find(sess => sess.id === s.activeSessionId)?.puzzle ?? '333'
   )
-  const is3x3 = activePuzzle === '333'
+  const currentScramble = scramble ?? storeScramble
+  const is3x3 = scramble !== undefined || activePuzzle === '333'
   const [face, setFace] = useState<(typeof FACE_OPTIONS)[number]>('best')
   const [solving, setSolving] = useState(false)
   const [result, setResult] = useState<CFOPResult | null>(null)
@@ -172,7 +174,7 @@ export function CFOPSolverCard() {
 
       {is3x3 && !currentScramble && (
         <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
-          Generate a scramble on the Timer page first.
+          Generate a scramble to solve.
         </p>
       )}
 
