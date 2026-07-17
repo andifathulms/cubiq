@@ -56,7 +56,7 @@ export function MegaminxSolverCard({ initialScramble }: { initialScramble?: stri
   const [solving, setSolving] = useState(false)
   const [result, setResult] = useState<MinxResult | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [anim, setAnim] = useState<{ setup: string; alg: string; label: string } | null>(null)
+  const [anim, setAnim] = useState<{ setup: string; alg: string; label: string; stages?: { name: string; kind: string; moveCount: number }[] } | null>(null)
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -190,7 +190,7 @@ export function MegaminxSolverCard({ initialScramble }: { initialScramble?: stri
               {result.total_moves} moves · {(result.time_ms / 1000).toFixed(0)}s
             </span>
             <button
-              onClick={() => setAnim({ setup: scramble, alg: result.solution, label: 'full solution' })}
+              onClick={() => setAnim({ setup: scramble, alg: result.solution, label: 'full solution', stages: result.stages.map(s => ({ name: s.name, kind: s.kind, moveCount: s.move_count })) })}
               title="Animate full solution"
               className="p-1 rounded transition-colors shrink-0"
               style={{ color: 'var(--text-muted)' }}
@@ -239,7 +239,7 @@ export function MegaminxSolverCard({ initialScramble }: { initialScramble?: stri
                   Close
                 </button>
               </div>
-              <AnimatedCube setup={anim.setup} alg={anim.alg} puzzle="megaminx" height={280} />
+              <AnimatedCube setup={anim.setup} alg={anim.alg} puzzle="megaminx" height={280} stages={anim.stages} />
             </div>
           )}
         </div>

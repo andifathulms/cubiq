@@ -57,7 +57,7 @@ export function Cube555SolverCard({ initialScramble }: { initialScramble?: strin
   const [solving, setSolving] = useState(false)
   const [result, setResult] = useState<Result555 | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [anim, setAnim] = useState<{ setup: string; alg: string; label: string } | null>(null)
+  const [anim, setAnim] = useState<{ setup: string; alg: string; label: string; stages?: { name: string; kind: string; moveCount: number }[] } | null>(null)
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -195,7 +195,7 @@ export function Cube555SolverCard({ initialScramble }: { initialScramble?: strin
               {result.total_moves} moves · {(result.time_ms / 1000).toFixed(1)}s
             </span>
             <button
-              onClick={() => setAnim({ setup: scramble, alg: result.solution, label: 'full solution' })}
+              onClick={() => setAnim({ setup: scramble, alg: result.solution, label: 'full solution', stages: result.stages.map(s => ({ name: s.name, kind: s.kind, moveCount: s.move_count })) })}
               title="Animate full solution"
               className="p-1 rounded transition-colors shrink-0"
               style={{ color: 'var(--text-muted)' }}
@@ -244,7 +244,7 @@ export function Cube555SolverCard({ initialScramble }: { initialScramble?: strin
                   Close
                 </button>
               </div>
-              <AnimatedCube setup={anim.setup} alg={anim.alg} puzzle="5x5x5" />
+              <AnimatedCube setup={anim.setup} alg={anim.alg} puzzle="5x5x5" stages={anim.stages} />
             </div>
           )}
         </div>
