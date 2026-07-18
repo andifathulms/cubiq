@@ -107,6 +107,37 @@ def solve_xcross(scramble: str, face: str = 'D', max_solutions: int = 2) -> dict
     }
 
 
+def solve_double_xcross(scramble: str, face: str = 'D', max_solutions: int = 1,
+                        max_depth: int = 16) -> dict:
+    """Optimal double x-cross (cross + TWO F2L pairs, solved jointly) for each of
+    the 6 pairs-of-pairs. A solution always exists; the point is the length —
+    which pairs give a short, worth-doing double x-cross (and which don't)."""
+    from itertools import combinations
+    warm_tables()
+    t0 = time.perf_counter()
+    remapped = remap_scramble(scramble, face)
+    start = F2LState.from_scramble(remapped)
+    solutions = []
+    for pi, pj in combinations(range(len(PAIR_NAMES)), 2):
+        sols = solve_pairs(start, [pi, pj], max_depth=max_depth,
+                           max_solutions=max_solutions)
+        solutions.append({
+            'pairs': f'{PAIR_NAMES[pi]}+{PAIR_NAMES[pj]}',
+            'moves': sols[0] if sols else [],
+            'move_count': len(sols[0]) if sols else 0,
+            'found': bool(sols),
+            'alternatives': sols[1:],
+        })
+    # shortest first; any not found (beyond max_depth) sort last
+    solutions.sort(key=lambda s: (not s['found'], s['move_count']))
+    return {
+        'face': face,
+        'rotation': FACE_ROTATION[face],
+        'solutions': solutions,
+        'time_ms': (time.perf_counter() - t0) * 1000,
+    }
+
+
 class _Beam:
     __slots__ = ('moves', 'stages', 'state', 'solved')
 

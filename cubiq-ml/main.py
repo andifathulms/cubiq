@@ -8,7 +8,7 @@ import kociemba
 
 from cube import scramble_to_facelet
 from solver import solve_all_crosses
-from cfop import solve_cfop, solve_xcross, FACES
+from cfop import solve_cfop, solve_xcross, solve_double_xcross, FACES
 from cfop444 import solve_444
 from solver222 import solve_222, get_table as warm_222_table
 from solverpyram import solve_pyram, get_table as warm_pyram_table
@@ -164,6 +164,18 @@ def solve_xcross_endpoint(req: XCrossSolveRequest):
     try:
         return solve_xcross(req.state, face=face,
                             max_solutions=max(1, min(req.max_solutions, 3)))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post("/solve/xxcross")
+def solve_double_xcross_endpoint(req: XCrossSolveRequest):
+    face = req.face.upper()
+    if face not in FACES:
+        raise HTTPException(status_code=422, detail=f"Invalid face '{req.face}'")
+    try:
+        return solve_double_xcross(req.state, face=face,
+                                   max_solutions=max(1, min(req.max_solutions, 2)))
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

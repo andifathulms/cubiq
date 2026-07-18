@@ -50,6 +50,14 @@ interface XCrossSolution {
   alternatives: string[][]
 }
 
+interface XXCrossSolution {
+  pairs: string
+  moves: string[]
+  move_count: number
+  found: boolean
+  alternatives: string[][]
+}
+
 function SolutionRow({ sol, scramble, onAnimate }: { sol: CrossSolution; scramble: string; onAnimate: (alg: string) => void }) {
   const { settings } = useCubiqStore()
   const currentScramble = scramble
@@ -58,6 +66,10 @@ function SolutionRow({ sol, scramble, onAnimate }: { sol: CrossSolution; scrambl
   const [xcrossOpen, setXcrossOpen] = useState(false)
   const [xcrossLoading, setXcrossLoading] = useState(false)
   const [xcrossError, setXcrossError] = useState<string | null>(null)
+  const [xxcross, setXxcross] = useState<XXCrossSolution[] | null>(null)
+  const [xxcrossOpen, setXxcrossOpen] = useState(false)
+  const [xxcrossLoading, setXxcrossLoading] = useState(false)
+  const [xxcrossError, setXxcrossError] = useState<string | null>(null)
   const moveStr = sol.moves.join(' ')
   const prefix = sol.rotation ? sol.rotation + ' ' : ''
   const display = prefix + (moveStr || '(already solved)')
@@ -86,6 +98,29 @@ function SolutionRow({ sol, scramble, onAnimate }: { sol: CrossSolution; scrambl
       setXcrossError('x-cross needs the cubiq-ml service — is it running?')
     } finally {
       setXcrossLoading(false)
+    }
+  }
+
+  async function toggleXXcross() {
+    if (xxcrossOpen) { setXxcrossOpen(false); return }
+    setXxcrossOpen(true)
+    if (xxcross || xxcrossLoading) return
+    setXxcrossLoading(true)
+    setXxcrossError(null)
+    try {
+      const res = await fetch(`${settings.ml_service_url}/solve/xxcross`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ state: currentScramble, face: sol.face }),
+        signal: AbortSignal.timeout(30000),
+      })
+      if (!res.ok) throw new Error(`service returned ${res.status}`)
+      const data = await res.json()
+      setXxcross(data.solutions)
+    } catch {
+      setXxcrossError('double x-cross needs the cubiq-ml service — is it running?')
+    } finally {
+      setXxcrossLoading(false)
     }
   }
 
@@ -147,6 +182,13 @@ function SolutionRow({ sol, scramble, onAnimate }: { sol: CrossSolution; scrambl
       >
         {xcrossOpen ? '− x-cross' : '+ x-cross'}
       </button>
+      <button
+        onClick={toggleXXcross}
+        className="text-[11px] font-mono transition-colors"
+        style={{ color: xxcrossOpen ? 'var(--accent-secondary)' : 'var(--text-muted)' }}
+      >
+        {xxcrossOpen ? '− double x-cross' : '+ double x-cross'}
+      </button>
     </div>
 
     {showAlts && alts.map((alt, i) => (
@@ -186,6 +228,52 @@ function SolutionRow({ sol, scramble, onAnimate }: { sol: CrossSolution; scrambl
               <Play size={11} />
             </button>
             <CopyButton text={prefix + xs.moves.join(' ')} />
+          </div>
+        ))}
+      </div>
+    )}
+
+    {xxcrossOpen && (
+      <div className="flex flex-col gap-1 mt-2 pl-8">
+        {xxcrossLoading && (
+          <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>solving double x-crosses (cross + 2 pairs)…</span>
+        )}
+        {xxcrossError && (
+          <span className="text-[11px]" style={{ color: 'var(--accent-danger)' }}>{xxcrossError}</span>
+        )}
+        {xxcross && !xxcrossLoading && (
+          <span className="text-[10px] mb-0.5" style={{ color: 'var(--text-muted)' }}>
+            shortest first — a good double x-cross exists on some pair pairs, not others
+          </span>
+        )}
+        {xxcross?.map(xs => (
+          <div key={xs.pairs} className="flex items-center gap-2">
+            <span className="text-[10px] font-mono w-20 shrink-0" style={{ color: 'var(--text-muted)' }}>
+              +{xs.pairs}
+            </span>
+            {xs.found ? (
+              <>
+                <span className="flex-1 font-mono text-xs break-all" style={{ color: 'var(--text-secondary)' }}>
+                  {prefix + xs.moves.join(' ')}
+                </span>
+                <span className="text-[10px] font-mono tabular-nums shrink-0" style={{ color: 'var(--text-muted)' }}>
+                  {xs.move_count}m
+                </span>
+                <button
+                  onClick={() => onAnimate(prefix + xs.moves.join(' '))}
+                  title="Animate in cube preview"
+                  className="p-1 rounded transition-colors shrink-0"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  <Play size={11} />
+                </button>
+                <CopyButton text={prefix + xs.moves.join(' ')} />
+              </>
+            ) : (
+              <span className="flex-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                none within 16 moves — not worth it
+              </span>
+            )}
           </div>
         ))}
       </div>
