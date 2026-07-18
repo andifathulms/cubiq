@@ -1,9 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Box, Loader, Play, RefreshCw, Copy, Check } from 'lucide-react'
+import { Box, Loader, Play, Copy, Check } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedCube } from '@/components/solvers/AnimatedCube'
-import { generateScramble } from '@/lib/cubing'
 import { useCubiqStore } from '@/store'
 
 interface Stage555 {
@@ -50,34 +49,21 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-export function Cube555SolverCard({ initialScramble }: { initialScramble?: string } = {}) {
+export function Cube555SolverCard({ scramble }: { scramble: string }) {
   const { settings } = useCubiqStore()
-  const [scramble, setScramble] = useState(initialScramble ?? '')
-  const [generating, setGenerating] = useState(false)
   const [solving, setSolving] = useState(false)
   const [result, setResult] = useState<Result555 | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [anim, setAnim] = useState<{ setup: string; alg: string; label: string; stages?: { name: string; kind: string; moveCount: number }[] } | null>(null)
 
+  // A new scramble (from the shared panel) invalidates any prior solution.
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (initialScramble) { setScramble(initialScramble); setResult(null); setAnim(null) }
-  }, [initialScramble])
-  useEffect(() => {
-    setScramble(s => s || generateScramble('555'))
-  }, [])
-  /* eslint-enable react-hooks/set-state-in-effect */
-
-  function generate() {
-    setGenerating(true)
     setResult(null)
-    setAnim(null)
     setError(null)
-    // local move-sequence generator — cubing.js's randomScrambleForEvent
-    // needs a module worker, which fails under the webpack dev bundler
-    setScramble(generateScramble('555'))
-    setGenerating(false)
-  }
+    setAnim(null)
+  }, [scramble])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   async function handleSolve() {
     if (!scramble) return
@@ -133,45 +119,20 @@ export function Cube555SolverCard({ initialScramble }: { initialScramble?: strin
             their central edges, then finish as a 3×3 with the CFOP solver.
           </p>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={generate}
-              disabled={generating || solving}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
-              style={{
-                background: 'var(--bg-elevated)',
-                color: generating ? 'var(--text-muted)' : 'var(--accent-secondary)',
-                border: '1px solid var(--border)',
-              }}
-            >
-              <RefreshCw size={12} className={generating ? 'animate-spin' : ''} />
-              Scramble
-            </button>
-            <button
-              onClick={handleSolve}
-              disabled={solving || !scramble}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
-              style={{
-                background: 'var(--bg-elevated)',
-                color: solving || !scramble ? 'var(--text-muted)' : 'var(--accent-primary)',
-                border: '1px solid var(--border)',
-              }}
-            >
-              {solving ? <Loader size={12} className="animate-spin" /> : <Play size={12} />}
-              {solving ? 'Solving… (minutes; rare cases longer)' : 'Solve'}
-            </button>
-          </div>
+          <button
+            onClick={handleSolve}
+            disabled={solving || !scramble}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-transform active:scale-[0.98]"
+            style={{
+              background: solving || !scramble ? 'var(--bg-elevated)' : 'var(--gradient-accent)',
+              color: solving || !scramble ? 'var(--text-muted)' : '#08080c',
+            }}
+          >
+            {solving ? <Loader size={14} className="animate-spin" /> : <Play size={14} />}
+            {solving ? 'Solving… (minutes; rare cases longer)' : 'Solve'}
+          </button>
         </div>
       </div>
-
-      {scramble && (
-        <div className="mt-3 flex items-start gap-2 px-3 py-2 rounded-xl" style={{ background: 'var(--bg-elevated)' }}>
-          <span className="flex-1 font-mono text-xs break-all" style={{ color: 'var(--text-secondary)' }}>
-            {scramble}
-          </span>
-          <CopyButton text={scramble} />
-        </div>
-      )}
 
       {error && (
         <p className="mt-3 text-xs px-3 py-2 rounded-xl" style={{ background: 'var(--accent-danger)15', color: 'var(--accent-danger)' }}>

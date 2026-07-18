@@ -11,7 +11,7 @@ export default function SolversPage() {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
-          <div className="max-w-2xl mx-auto px-4 py-6">
+          <div className="max-w-6xl mx-auto px-4 py-8">
             <SolverWorkspace />
           </div>
         </main>

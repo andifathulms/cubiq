@@ -49,40 +49,46 @@ export function ScramblePanel({ puzzle, twistyId, scramble, onScramble, previewH
   }, [puzzle])
 
   return (
-    <div className="rounded-2xl p-4 flex flex-col gap-3" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => onScramble(generateScramble(puzzle))}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
-          style={{ background: 'var(--bg-elevated)', color: 'var(--accent-primary)', border: '1px solid var(--border)' }}
-        >
-          <Shuffle size={13} />
-          New scramble
-        </button>
+    <div className="card p-4 flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <span className="eyebrow">Scramble</span>
         <button
           onClick={() => { navigator.clipboard.writeText(scramble); setCopied(true); setTimeout(() => setCopied(false), 1500) }}
-          className="p-1.5 rounded-lg transition-colors"
+          className="flex items-center gap-1 text-[11px] font-medium transition-colors"
           style={{ color: copied ? 'var(--accent-success)' : 'var(--text-muted)' }}
           title="Copy scramble"
         >
-          {copied ? <Check size={14} /> : <Copy size={14} />}
+          {copied ? <Check size={13} /> : <Copy size={13} />}
+          {copied ? 'Copied' : 'Copy'}
         </button>
-        <span className="ml-auto text-[10px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>scramble</span>
+      </div>
+
+      {/* Cube preview — the reference you're solving against */}
+      <div
+        className="flex justify-center rounded-xl py-2"
+        style={{ background: 'var(--bg-base)', border: '1px solid var(--border)' }}
+      >
+        <div className="w-full max-w-xs">
+          <ScrambledPreview scramble={scramble} twistyId={twistyId} height={previewHeight} />
+        </div>
       </div>
 
       <input
         value={scramble}
         onChange={e => onScramble(e.target.value)}
         spellCheck={false}
-        className="w-full font-mono text-xs px-3 py-2 rounded-xl outline-none"
+        className="w-full font-mono text-xs px-3 py-2.5 rounded-xl outline-none transition-colors focus:border-[var(--border-accent)]"
         style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
       />
 
-      <div className="flex justify-center">
-        <div className="w-full max-w-xs">
-          <ScrambledPreview scramble={scramble} twistyId={twistyId} height={previewHeight} />
-        </div>
-      </div>
+      <button
+        onClick={() => onScramble(generateScramble(puzzle))}
+        className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-transform active:scale-[0.98]"
+        style={{ background: 'var(--gradient-accent)', color: '#08080c', boxShadow: '0 4px 16px -6px rgba(110,231,247,0.5)' }}
+      >
+        <Shuffle size={15} />
+        New scramble
+      </button>
     </div>
   )
 }
