@@ -4,6 +4,7 @@ import { CircleDot, Loader, Play, Copy, Check } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Sq1AnimatedView } from '@/components/solvers/Sq1AnimatedView'
 import { Sq1View3D } from '@/components/solvers/Sq1View3D'
+import { AnimatedCube } from '@/components/solvers/AnimatedCube'
 import { useCubiqStore } from '@/store'
 
 interface StageSq1 {
@@ -49,7 +50,7 @@ export function Sq1SolverCard({ scramble }: { scramble: string }) {
   const [result, setResult] = useState<ResultSq1 | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [anim, setAnim] = useState<{ setup: string; alg: string; label: string } | null>(null)
-  const [view3d, setView3d] = useState(true)
+  const [view, setView] = useState<'3d' | 'disc' | 'net'>('3d')
 
   // A new scramble (from the shared panel) invalidates any prior solution.
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -185,13 +186,19 @@ export function Sq1SolverCard({ scramble }: { scramble: string }) {
               <div className="flex items-center justify-between mb-1">
                 <p className="text-xs font-display" style={{ color: 'var(--text-muted)' }}>{anim.label}</p>
                 <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setView3d(v => !v)}
-                    className="text-xs px-2 py-0.5 rounded"
-                    style={{ color: 'var(--accent-primary)', background: 'var(--bg-surface)' }}
-                  >
-                    {view3d ? '2D' : '3D'}
-                  </button>
+                  {(['3d', 'disc', 'net'] as const).map(m => (
+                    <button
+                      key={m}
+                      onClick={() => setView(m)}
+                      className="text-xs px-2 py-0.5 rounded transition-colors"
+                      style={{
+                        color: view === m ? 'var(--accent-primary)' : 'var(--text-muted)',
+                        background: view === m ? 'var(--accent-primary)15' : 'var(--bg-surface)',
+                      }}
+                    >
+                      {m === '3d' ? '3D' : m === 'disc' ? '2D' : 'net'}
+                    </button>
+                  ))}
                   <button
                     onClick={() => setAnim(null)}
                     className="text-xs px-2 py-0.5 rounded"
@@ -201,9 +208,9 @@ export function Sq1SolverCard({ scramble }: { scramble: string }) {
                   </button>
                 </div>
               </div>
-              {view3d
-                ? <Sq1View3D setup={anim.setup} alg={anim.alg} />
-                : <Sq1AnimatedView setup={anim.setup} alg={anim.alg} />}
+              {view === '3d' && <Sq1View3D setup={anim.setup} alg={anim.alg} />}
+              {view === 'disc' && <Sq1AnimatedView setup={anim.setup} alg={anim.alg} />}
+              {view === 'net' && <AnimatedCube setup={anim.setup} alg={anim.alg} puzzle="square1" />}
             </div>
           )}
         </div>
