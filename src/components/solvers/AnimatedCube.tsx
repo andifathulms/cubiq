@@ -34,7 +34,6 @@ export function AnimatedCube({ setup, alg, height = 260, puzzle = '3x3x3', stage
       const existing = containerRef.current.querySelector('twisty-player')
       if (existing) existing.remove()
       const player = document.createElement('twisty-player') as unknown as HTMLElement & {
-        tempoScale?: number
         experimentalModel?: {
           currentMoveInfo: {
             addFreshListener: (cb: (i: { movesFinished: unknown[] }) => void) => void
@@ -48,11 +47,11 @@ export function AnimatedCube({ setup, alg, height = 260, puzzle = '3x3x3', stage
       player.setAttribute('visualization', '3D')
       player.setAttribute('background', 'none')
       player.setAttribute('control-panel', 'bottom-row')  // play/pause, step ◀▶, scrubber
+      player.setAttribute('tempo-scale', String(speed))
       player.style.width = '100%'
       player.style.height = `${height}px`
       containerRef.current!.appendChild(player)
       playerRef.current = player
-      if (player.tempoScale !== undefined) player.tempoScale = speed
 
       // Track which stage the current move belongs to
       if (stages && stages.length && player.experimentalModel) {
@@ -76,8 +75,7 @@ export function AnimatedCube({ setup, alg, height = 260, puzzle = '3x3x3', stage
 
   function setTempo(v: number) {
     setSpeed(v)
-    const p = playerRef.current as (HTMLElement & { tempoScale?: number }) | null
-    if (p && p.tempoScale !== undefined) p.tempoScale = v
+    playerRef.current?.setAttribute('tempo-scale', String(v))
   }
 
   const currentStage = stages && stageIdx !== null ? stages[stageIdx] : null
