@@ -15,16 +15,18 @@ export default function HistoryPage() {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <main className="flex-1 flex flex-col overflow-y-auto pb-16 md:pb-0">
-          <div className="px-4 py-6">
-            <h1
-              className="text-2xl font-bold font-display mb-1"
-              style={{ color: 'var(--text-primary)' }}
-            >
-              Solve History
-            </h1>
-            <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>
-              {session?.name} — {session?.solves.length ?? 0} solves
-            </p>
+          <div className="max-w-4xl mx-auto w-full px-4 py-8">
+            <div className="animate-fade-in mb-6">
+              <h1
+                className="text-3xl font-bold font-display mb-1 tracking-tight"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                Solve History
+              </h1>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                {session?.name} — {session?.solves.length ?? 0} solves
+              </p>
+            </div>
             <SolveTable />
           </div>
         </main>

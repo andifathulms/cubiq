@@ -121,8 +121,15 @@ export default function TimerPage() {
             <TimerDisplay />
             {isHydrated && timerState === 'stopped' && <SolvePenaltyBar />}
             {isHydrated && (timerState === 'idle' || timerState === 'stopped') && (
-              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                Hold spacebar to start
+              <p className="flex items-center gap-2 text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
+                Hold
+                <kbd
+                  className="px-2 py-0.5 rounded-md font-mono text-[11px] font-bold border"
+                  style={{ borderColor: 'var(--border)', background: 'var(--bg-glass)', color: 'var(--text-secondary)' }}
+                >
+                  Space
+                </kbd>
+                to start
               </p>
             )}
           </div>
@@ -134,7 +141,7 @@ export default function TimerPage() {
               style={{ opacity: hideScramble ? 0 : 1, pointerEvents: hideScramble ? 'none' : 'auto' }}
             >
               {settings.cube_preview_visible ? (
-                <div className="glass rounded-2xl p-2 relative group">
+                <div className="card p-2 relative group" style={{ boxShadow: 'var(--shadow-lg)' }}>
                   <CubePreview3D
                     scramble={currentScramble}
                     interactive

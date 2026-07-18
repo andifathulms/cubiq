@@ -25,14 +25,19 @@ export function TimerDisplay() {
     display = formatTime(currentTime)
   }
 
+  const isActive = timerState === 'running' || timerState === 'ready' || timerState === 'inspection'
+
   return (
     <div
-      className="select-none font-mono text-center transition-colors duration-100"
+      className="select-none font-mono text-center tabular-nums transition-all duration-150"
       style={{
-        fontSize: 'clamp(3rem, 12vw, 7rem)',
+        fontSize: 'clamp(3.5rem, 14vw, 8.5rem)',
         lineHeight: 1,
+        fontWeight: 700,
+        letterSpacing: '-0.02em',
         color,
-        textShadow: timerState === 'running' ? `0 0 40px ${color}44` : 'none',
+        textShadow: isActive ? `0 0 60px ${color}55, 0 0 24px ${color}33` : 'none',
+        transform: timerState === 'running' ? 'scale(1.02)' : 'scale(1)',
       }}
     >
       {display}

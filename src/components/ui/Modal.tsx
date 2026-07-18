@@ -23,13 +23,14 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
       className="fixed inset-0 z-50 flex items-center justify-center"
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
       <div
-        className="relative glass rounded-2xl p-6 w-full max-w-md mx-4 z-10"
+        className="relative card p-6 w-full max-w-md mx-4 z-10 animate-fade-in"
+        style={{ background: 'var(--bg-elevated-solid)', boxShadow: 'var(--shadow-lg)' }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold font-display text-[var(--text-primary)]">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-semibold font-display tracking-tight text-[var(--text-primary)]">
             {title}
           </h2>
           <button
