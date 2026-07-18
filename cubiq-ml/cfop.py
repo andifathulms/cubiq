@@ -23,6 +23,63 @@ from lastlayer import FullState, solve_oll, solve_pll
 
 FACES = ['D', 'U', 'F', 'B', 'R', 'L']
 
+_OPP = {'U': 'D', 'D': 'U', 'F': 'B', 'B': 'F', 'L': 'R', 'R': 'L'}
+_AMT = {'': 1, '2': 2, "'": 3}
+
+
+def _parse_face(tok: str):
+    """(face, quarter-turns) for a plain face move, else None (a barrier)."""
+    if len(tok) >= 1 and tok[0] in _OPP and tok[1:] in _AMT:
+        return tok[0], _AMT[tok[1:]]
+    return None
+
+
+def _build(face: str, amt: int) -> Optional[str]:
+    amt %= 4
+    if amt == 0:
+        return None
+    return face + ('' if amt == 1 else '2' if amt == 2 else "'")
+
+
+def cancel_staged(stages: List[dict]) -> Tuple[List[str], List[int]]:
+    """Concatenate all stage moves and cancel redundancies — adjacent same-face
+    moves (F F' → nothing, F F → F2 …) and same-face moves separated only by the
+    commuting opposite face (F B F' → B). Returns the reduced move list and the
+    per-stage surviving move counts (so the step markers still line up).
+    Non-face tokens (rotations, wide/slice) act as barriers and never cancel."""
+    seq = []  # [stage_idx, face_or_None, amt, raw_token]
+    for si, st in enumerate(stages):
+        for tok in st['moves']:
+            p = _parse_face(tok)
+            seq.append([si, p[0] if p else None, p[1] if p else 0, tok])
+
+    out: List[list] = []
+    for item in seq:
+        _, f, a, _ = item
+        if f is None:
+            out.append(item)
+            continue
+        j = len(out) - 1
+        while j >= 0 and out[j][1] == _OPP[f]:  # skip past commuting opposite face
+            j -= 1
+        if j >= 0 and out[j][1] == f:
+            na = (out[j][2] + a) % 4
+            if na == 0:
+                out.pop(j)                      # both fully cancel
+            else:
+                out[j][2] = na                  # merge into the earlier move
+        else:
+            out.append(item)
+
+    moves: List[str] = []
+    counts = [0] * len(stages)
+    for si, f, a, raw in out:
+        tok = raw if f is None else _build(f, a)
+        if tok:
+            moves.append(tok)
+            counts[si] += 1
+    return moves, counts
+
 
 def solve_xcross(scramble: str, face: str = 'D', max_solutions: int = 2) -> dict:
     """Optimal x-cross (cross + one F2L pair, solved jointly) for each of the
@@ -146,16 +203,24 @@ def solve_cfop_face(
              'kind': 'pll', 'moves': pll['moves']},
         ]
         total = b.moves + oll['moves'] + pll['moves']
-        if best is None or len(total) < best['total_moves']:
+        for st in stages:
+            st['move_count'] = len(st['moves'])
+        # Cancel redundant moves across stage boundaries (e.g. a pair ending in F
+        # and the next starting F'). The staged list keeps the full, readable
+        # moves; the executed solution and move count are reduced. Selection is
+        # on the reduced count — the metric a solver actually cares about.
+        reduced, eff_counts = cancel_staged(stages)
+        if best is None or len(reduced) < best['total_moves']:
+            for st, ec in zip(stages, eff_counts):
+                st['eff_move_count'] = ec
             rotation = FACE_ROTATION[face]
-            for st in stages:
-                st['move_count'] = len(st['moves'])
             best = {
                 'face': face,
                 'rotation': rotation,
                 'stages': stages,
-                'total_moves': len(total),
-                'solution': (rotation + ' ' if rotation else '') + ' '.join(total),
+                'staged_moves': len(total),
+                'total_moves': len(reduced),
+                'solution': (rotation + ' ' if rotation else '') + ' '.join(reduced),
             }
 
     if best is None:

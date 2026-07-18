@@ -10,13 +10,15 @@ interface CFOPStage {
   kind: 'cross' | 'xcross' | 'f2l' | 'oll' | 'pll'
   moves: string[]
   move_count: number
+  eff_move_count?: number   // surviving moves after cross-stage cancellation
 }
 
 interface CFOPResult {
   face: string
   rotation: string
   stages: CFOPStage[]
-  total_moves: number
+  total_moves: number       // executed count, after cancellation
+  staged_moves?: number     // sum of the staged move lists (before cancellation)
   solution: string
   time_ms: number
 }
@@ -79,7 +81,7 @@ export function CFOPSolverCard({ scramble }: { scramble?: string } = {}) {
       setup: currentScramble,
       alg: res.solution,
       label: 'full solution',
-      stages: res.stages.map(s => ({ name: s.name, kind: s.kind, moveCount: s.move_count })),
+      stages: res.stages.map(s => ({ name: s.name, kind: s.kind, moveCount: s.eff_move_count ?? s.move_count })),
     })
   }
 
@@ -200,7 +202,11 @@ export function CFOPSolverCard({ scramble }: { scramble?: string } = {}) {
               {result.rotation && <> — rotate <span className="font-mono" style={{ color: 'var(--text-primary)' }}>{result.rotation}</span> first</>}
             </span>
             <span className="ml-auto font-mono tabular-nums">
-              {result.total_moves} moves · {result.time_ms.toFixed(0)}ms
+              {result.total_moves} moves
+              {result.staged_moves && result.staged_moves > result.total_moves && (
+                <span style={{ color: 'var(--accent-success)' }}> (−{result.staged_moves - result.total_moves} cancelled)</span>
+              )}
+              {' · '}{result.time_ms.toFixed(0)}ms
             </span>
             <button
               onClick={() => animateFull(result)}
