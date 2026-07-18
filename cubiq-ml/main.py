@@ -128,6 +128,7 @@ class CFOPSolveRequest(BaseModel):
     cross_alternatives: int = 2
     pair_variants: int = 2
     try_xcross: bool = True
+    try_double_xcross: bool = False
 
 
 @app.post("/solve/cfop")
@@ -143,6 +144,7 @@ def solve_cfop_endpoint(req: CFOPSolveRequest):
             cross_alternatives=max(1, min(req.cross_alternatives, 5)),
             pair_variants=max(1, min(req.pair_variants, 3)),
             try_xcross=req.try_xcross,
+            try_double_xcross=req.try_double_xcross,
         )
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))

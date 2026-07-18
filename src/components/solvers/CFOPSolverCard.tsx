@@ -60,6 +60,7 @@ export function CFOPSolverCard({ scramble }: { scramble?: string } = {}) {
   const currentScramble = scramble ?? storeScramble
   const is3x3 = scramble !== undefined || activePuzzle === '333'
   const [face, setFace] = useState<(typeof FACE_OPTIONS)[number]>('best')
+  const [doubleXcross, setDoubleXcross] = useState(false)
   const [solving, setSolving] = useState(false)
   const [result, setResult] = useState<CFOPResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -95,7 +96,7 @@ export function CFOPSolverCard({ scramble }: { scramble?: string } = {}) {
       const res = await fetch(`${settings.ml_service_url}/solve/cfop`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state: currentScramble, face }),
+        body: JSON.stringify({ state: currentScramble, face, try_double_xcross: doubleXcross }),
         signal: AbortSignal.timeout(60000),
       })
       if (!res.ok) {
@@ -151,6 +152,20 @@ export function CFOPSolverCard({ scramble }: { scramble?: string } = {}) {
             </div>
 
             <button
+              onClick={() => setDoubleXcross(v => !v)}
+              title="Also try cross + 2 pairs jointly, and use it when it makes the whole solve shorter (a little slower)"
+              className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium transition-colors"
+              style={{
+                background: doubleXcross ? 'var(--accent-secondary)20' : 'var(--bg-elevated)',
+                color: doubleXcross ? 'var(--accent-secondary)' : 'var(--text-muted)',
+                border: `1px solid ${doubleXcross ? 'var(--accent-secondary)40' : 'var(--border)'}`,
+              }}
+            >
+              <span className="text-[13px] leading-none">{doubleXcross ? '☑' : '☐'}</span>
+              double x-cross
+            </button>
+
+            <button
               onClick={handleSolve}
               disabled={solving || !currentScramble || !is3x3}
               className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors"
@@ -161,7 +176,7 @@ export function CFOPSolverCard({ scramble }: { scramble?: string } = {}) {
               }}
             >
               {solving ? <Loader size={12} className="animate-spin" /> : <Play size={12} />}
-              {solving ? (face === 'best' ? 'Solving all faces…' : 'Solving…') : 'Solve'}
+              {solving ? (doubleXcross ? 'Solving (double x-cross)…' : face === 'best' ? 'Solving all faces…' : 'Solving…') : 'Solve'}
             </button>
           </div>
         </div>

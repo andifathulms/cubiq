@@ -159,6 +159,8 @@ def solve_cfop_face(
     cross_alternatives: int = 2,
     pair_variants: int = 2,
     try_xcross: bool = True,
+    try_double_xcross: bool = False,
+    double_xcross_depth: int = 13,
 ) -> dict:
     """Solve one cross face. Returns stages + totals; moves are expressed in
     the post-rotation frame (perform the rotation prefix first)."""
@@ -187,6 +189,28 @@ def solve_cfop_face(
                     apply_moves(start, sol),
                     (pi,),
                 ))
+    if try_double_xcross:
+        # Seed with short double x-crosses (cross + 2 pairs, jointly). Only the
+        # shortest few are worth exploring; if a joint solve is longer than the
+        # depth cap it isn't worth doing, so it's skipped and the beam falls
+        # back to x-cross / plain cross. Beam search keeps it only if the whole
+        # solution ends up shorter.
+        from itertools import combinations
+        xx = []
+        for pi, pj in combinations(range(4), 2):
+            sols = solve_pairs(start, [pi, pj], max_depth=double_xcross_depth,
+                               max_solutions=1)
+            if sols:
+                xx.append((pi, pj, sols[0]))
+        xx.sort(key=lambda t: len(t[2]))
+        for pi, pj, sol in xx[:3]:
+            beams.append(_Beam(
+                list(sol),
+                [{'name': f'double x-cross ({PAIR_NAMES[pi]}+{PAIR_NAMES[pj]})',
+                  'kind': 'xcross', 'moves': list(sol)}],
+                apply_moves(start, sol),
+                (pi, pj),
+            ))
 
     # ── Stage 2: beam search over pair order and solution variants ──
     for level in range(4):
@@ -267,14 +291,26 @@ def solve_cfop(
     cross_alternatives: int = 2,
     pair_variants: int = 2,
     try_xcross: bool = True,
+    try_double_xcross: bool = False,
 ) -> dict:
-    """face may be a specific face or 'best' (try all 6, return the shortest)."""
+    """face may be a specific face or 'best' (try all 6, return the shortest).
+    Double x-cross is expensive, so for 'best' it's only tried on the two
+    strongest faces from the fast pass — enough to capture the win when a
+    short double x-cross exists, without paying for all six."""
     if face != 'best':
         return solve_cfop_face(scramble, face, beam_width, cross_alternatives,
-                               pair_variants, try_xcross)
+                               pair_variants, try_xcross, try_double_xcross)
     t0 = time.perf_counter()
     results = [solve_cfop_face(scramble, f, beam_width, cross_alternatives,
                                pair_variants, try_xcross) for f in FACES]
-    best = min(results, key=lambda r: r['total_moves'])
+    results.sort(key=lambda r: r['total_moves'])
+    best = results[0]
+    if try_double_xcross:
+        for r in results[:2]:
+            alt = solve_cfop_face(scramble, r['face'], beam_width,
+                                  cross_alternatives, pair_variants,
+                                  try_xcross, try_double_xcross=True)
+            if alt['total_moves'] < best['total_moves']:
+                best = alt
     best['time_ms'] = (time.perf_counter() - t0) * 1000
     return best
