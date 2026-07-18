@@ -34,9 +34,10 @@ export function AnimatedCube({ setup, alg, height = 260, puzzle = '3x3x3', stage
       const existing = containerRef.current.querySelector('twisty-player')
       if (existing) existing.remove()
       const player = document.createElement('twisty-player') as unknown as HTMLElement & {
+        togglePlay?: (play?: boolean) => void
         experimentalModel?: {
           currentMoveInfo: {
-            addFreshListener: (cb: (i: { movesFinished: unknown[] }) => void) => void
+            addFreshListener: (cb: (i: { patternIndex: number }) => void) => void
             removeFreshListener: (cb: unknown) => void
           }
         }
@@ -53,13 +54,14 @@ export function AnimatedCube({ setup, alg, height = 260, puzzle = '3x3x3', stage
       containerRef.current!.appendChild(player)
       playerRef.current = player
 
-      // Track which stage the current move belongs to
+      // Track which stage the current move belongs to (patternIndex is the
+      // cumulative position in the alg — how many moves have been applied)
       if (stages && stages.length && player.experimentalModel) {
         const bounds: number[] = []
         let acc = 0
         for (const s of stages) { acc += s.moveCount; bounds.push(acc) }
-        const listener = (info: { movesFinished: unknown[] }) => {
-          const done = info.movesFinished.length
+        const listener = (info: { patternIndex: number }) => {
+          const done = info.patternIndex
           let idx = bounds.findIndex(b => done < b)
           if (idx === -1) idx = stages.length - 1
           setStageIdx(idx)
@@ -67,6 +69,18 @@ export function AnimatedCube({ setup, alg, height = 260, puzzle = '3x3x3', stage
         player.experimentalModel.currentMoveInfo.addFreshListener(listener)
         unlisten = () => player.experimentalModel?.currentMoveInfo.removeFreshListener(listener)
       }
+
+      // Spacebar toggles play/pause (unless typing in a field)
+      const onKey = (e: KeyboardEvent) => {
+        if (e.code !== 'Space') return
+        const t = e.target as HTMLElement | null
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
+        e.preventDefault()
+        player.togglePlay?.()
+      }
+      window.addEventListener('keydown', onKey)
+      const prevUnlisten = unlisten
+      unlisten = () => { prevUnlisten?.(); window.removeEventListener('keydown', onKey) }
     }
     mount()
     return () => { disposed = true; unlisten?.() }
