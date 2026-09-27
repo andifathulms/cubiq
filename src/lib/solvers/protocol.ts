@@ -16,6 +16,7 @@ export type SolverEndpoint =
 /** Endpoints served in the browser; anything else still goes to cubiq-ml. */
 export const LOCAL_ENDPOINTS: ReadonlySet<SolverEndpoint> = new Set<SolverEndpoint>([
   '/solve',
+  '/solve/222',
 ])
 
 export type WorkerRequest = { id: number; endpoint: SolverEndpoint; body: Record<string, unknown> }
