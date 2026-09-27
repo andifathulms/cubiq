@@ -9,6 +9,7 @@ import { solveSkewb } from './skewb'
 import { solveMega } from './mega'
 import { solveSq1 } from './sq1'
 import { solve444 } from './cfop444'
+import { solve555 } from './solver555'
 import { FACES, solveCfop, solveDoubleXcross, solveXcross, type CfopFace } from './cfop'
 
 type Handler = (body: Record<string, unknown>) => unknown
@@ -46,6 +47,7 @@ export const HANDLERS: Partial<Record<SolverEndpoint, Handler>> = {
   }),
   '/solve/minx': body => solveMega(str(body.state)),
   '/solve/sq1': body => solveSq1(str(body.state)),
+  '/solve/555': body => solve555(str(body.state)),
   '/solve/444': body => solve444(str(body.state), face(body.cfop_face, 'D', true), 4, body.try_xcross !== false),
   '/solve/xcross': body =>
     solveXcross(str(body.state), face(body.face, 'D') as CfopFace, int(body.max_solutions, 2, 1, 3)),
