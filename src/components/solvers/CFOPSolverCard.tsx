@@ -4,7 +4,7 @@ import { Layers, Loader, Play, Copy, Check } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedCube } from '@/components/solvers/AnimatedCube'
 import { useCubiqStore } from '@/store'
-import { requestSolve } from '@/lib/solvers/client'
+import { localSolve } from '@/lib/solvers/client'
 
 interface CFOPStage {
   name: string
@@ -53,7 +53,6 @@ function CopyButton({ text }: { text: string }) {
 }
 
 export function CFOPSolverCard({ scramble }: { scramble?: string } = {}) {
-  const settings = useCubiqStore(s => s.settings)
   const storeScramble = useCubiqStore(s => s.currentScramble)
   const activePuzzle = useCubiqStore(
     s => s.sessions.find(sess => sess.id === s.activeSessionId)?.puzzle ?? '333'
@@ -94,12 +93,9 @@ export function CFOPSolverCard({ scramble }: { scramble?: string } = {}) {
     setError(null)
     setAnim(null)
     try {
-      setResult(await requestSolve<CFOPResult>('/solve/cfop', { state: currentScramble, face, try_double_xcross: doubleXcross },
-        { serviceUrl: settings.ml_service_url, timeoutMs: 60000 }))
+      setResult(await localSolve<CFOPResult>('/solve/cfop', { state: currentScramble, face, try_double_xcross: doubleXcross }))
     } catch (e) {
-      setError(e instanceof Error && e.name === 'TimeoutError'
-        ? 'Request timed out — is the cubiq-ml service running?'
-        : String(e))
+      setError(e instanceof Error ? e.message : String(e))
     } finally {
       setSolving(false)
     }

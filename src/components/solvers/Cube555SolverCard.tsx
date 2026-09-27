@@ -3,8 +3,7 @@ import { useEffect, useState } from 'react'
 import { Box, Loader, Play, Copy, Check } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedCube } from '@/components/solvers/AnimatedCube'
-import { useCubiqStore } from '@/store'
-import { requestSolve } from '@/lib/solvers/client'
+import { localSolve } from '@/lib/solvers/client'
 
 interface Stage555 {
   name: string
@@ -51,7 +50,6 @@ function CopyButton({ text }: { text: string }) {
 }
 
 export function Cube555SolverCard({ scramble }: { scramble: string }) {
-  const { settings } = useCubiqStore()
   const [solving, setSolving] = useState(false)
   const [result, setResult] = useState<Result555 | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -73,12 +71,9 @@ export function Cube555SolverCard({ scramble }: { scramble: string }) {
     setError(null)
     setAnim(null)
     try {
-      setResult(await requestSolve<Result555>('/solve/555', { state: scramble },
-        { serviceUrl: settings.ml_service_url, timeoutMs: 1800000 }))
+      setResult(await localSolve<Result555>('/solve/555', { state: scramble }))
     } catch (e) {
-      setError(e instanceof Error && e.name === 'TimeoutError'
-        ? 'Request timed out — is the cubiq-ml service running?'
-        : String(e))
+      setError(e instanceof Error ? e.message : String(e))
     } finally {
       setSolving(false)
     }

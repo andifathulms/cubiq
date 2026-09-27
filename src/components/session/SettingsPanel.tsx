@@ -86,6 +86,9 @@ export function SettingsPanel() {
 
       <div className="flex flex-col gap-1.5">
         <span className="text-sm" style={{ color: 'var(--text-primary)' }}>ML service URL</span>
+        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          Only for the experimental Research (MDP) tab — all solvers run in the browser.
+        </span>
         <input
           value={urlInput}
           onChange={e => setUrlInput(e.target.value)}

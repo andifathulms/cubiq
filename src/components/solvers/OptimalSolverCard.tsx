@@ -3,8 +3,7 @@ import { useEffect, useState } from 'react'
 import { Zap, Loader, Play, Copy, Check } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedCube } from '@/components/solvers/AnimatedCube'
-import { useCubiqStore } from '@/store'
-import { requestSolve } from '@/lib/solvers/client'
+import { localSolve } from '@/lib/solvers/client'
 import type { SolverEndpoint } from '@/lib/solvers/protocol'
 
 interface OptimalResult {
@@ -42,7 +41,6 @@ function CopyButton({ text }: { text: string }) {
 }
 
 export function OptimalSolverCard({ title, description, endpoint, twistyId, scramble, badge = 'OPTIMAL' }: Props) {
-  const settings = useCubiqStore(s => s.settings)
   const [solving, setSolving] = useState(false)
   const [result, setResult] = useState<OptimalResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -64,12 +62,9 @@ export function OptimalSolverCard({ title, description, endpoint, twistyId, scra
     setError(null)
     setShowAnim(false)
     try {
-      setResult(await requestSolve<OptimalResult>(endpoint, { state: scramble },
-        { serviceUrl: settings.ml_service_url, timeoutMs: 30000 }))
+      setResult(await localSolve<OptimalResult>(endpoint, { state: scramble }))
     } catch (e) {
-      setError(e instanceof Error && e.name === 'TimeoutError'
-        ? 'Request timed out — is the cubiq-ml service running?'
-        : String(e))
+      setError(e instanceof Error ? e.message : String(e))
     } finally {
       setSolving(false)
     }

@@ -3,8 +3,7 @@ import { useEffect, useState } from 'react'
 import { Pentagon, Loader, Play, Copy, Check } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedCube } from '@/components/solvers/AnimatedCube'
-import { useCubiqStore } from '@/store'
-import { requestSolve } from '@/lib/solvers/client'
+import { localSolve } from '@/lib/solvers/client'
 
 interface MinxStage {
   name: string
@@ -51,7 +50,6 @@ function CopyButton({ text }: { text: string }) {
 }
 
 export function MegaminxSolverCard({ scramble }: { scramble: string }) {
-  const settings = useCubiqStore(s => s.settings)
   const [solving, setSolving] = useState(false)
   const [result, setResult] = useState<MinxResult | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -73,12 +71,9 @@ export function MegaminxSolverCard({ scramble }: { scramble: string }) {
     setError(null)
     setAnim(null)
     try {
-      setResult(await requestSolve<MinxResult>('/solve/minx', { state: scramble },
-        { serviceUrl: settings.ml_service_url, timeoutMs: 600000 }))
+      setResult(await localSolve<MinxResult>('/solve/minx', { state: scramble }))
     } catch (e) {
-      setError(e instanceof Error && e.name === 'TimeoutError'
-        ? 'Request timed out — is the cubiq-ml service running?'
-        : String(e))
+      setError(e instanceof Error ? e.message : String(e))
     } finally {
       setSolving(false)
     }

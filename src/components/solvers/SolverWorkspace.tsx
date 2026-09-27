@@ -73,7 +73,7 @@ export function SolverWorkspace() {
           Solvers
         </h1>
         <p className="text-sm max-w-2xl" style={{ color: 'var(--text-secondary)' }}>
-          Generate a scramble and solve it — one puzzle at a time. Everything runs against the cubiq-ml service.
+          Generate a scramble and solve it — one puzzle at a time. Every solver runs right here in your browser.
         </p>
       </div>
 
@@ -116,7 +116,7 @@ export function SolverWorkspace() {
       {tab === 'research' ? (
         <div className="flex flex-col gap-6">
           <p className="text-xs px-3 py-2 rounded-xl" style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}>
-            Experimental — a from-scratch MDP/RL solver. Not a practical solver yet; this panel trains and evaluates the model.
+            Experimental — a from-scratch MDP/RL solver. Not a practical solver yet; this panel trains and evaluates the model, and needs the Python cubiq-ml service running locally.
           </p>
           <MDPPanel />
         </div>
@@ -134,7 +134,7 @@ export function SolverWorkspace() {
                 <CFOPSolverCard scramble={scr} />
                 <OptimalSolverCard
                   title="Two-Phase Solver"
-                  description="Kociemba-style two-phase search (via cubing.js) — a complete solution in about 20 moves, found in well under a second. Short, but not guaranteed optimal."
+                  description="Kociemba-style two-phase search (min2phase) — a complete solution in about 20 moves, found in milliseconds. Short, but not guaranteed optimal."
                   endpoint="/solve" twistyId="3x3x3" scramble={scr} badge="TWO-PHASE"
                 />
               </>

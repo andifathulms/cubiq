@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { RefreshCw, Copy, Check, Play } from 'lucide-react'
 import { useCubiqStore } from '@/store'
 import { solveAllCrosses } from '@/lib/solver'
-import { requestSolve } from '@/lib/solvers/client'
+import { localSolve } from '@/lib/solvers/client'
 import { GlassCard } from '@/components/ui/GlassCard'
 import type { CrossSolution } from '@/types'
 
@@ -60,7 +60,6 @@ interface XXCrossSolution {
 }
 
 function SolutionRow({ sol, scramble, onAnimate }: { sol: CrossSolution; scramble: string; onAnimate: (alg: string) => void }) {
-  const { settings } = useCubiqStore()
   const currentScramble = scramble
   const [showAlts, setShowAlts] = useState(false)
   const [xcross, setXcross] = useState<XCrossSolution[] | null>(null)
@@ -86,8 +85,7 @@ function SolutionRow({ sol, scramble, onAnimate }: { sol: CrossSolution; scrambl
     setXcrossLoading(true)
     setXcrossError(null)
     try {
-      const data = await requestSolve<{ solutions: XCrossSolution[] }>('/solve/xcross', { state: currentScramble, face: sol.face },
-        { serviceUrl: settings.ml_service_url, timeoutMs: 30000 })
+      const data = await localSolve<{ solutions: XCrossSolution[] }>('/solve/xcross', { state: currentScramble, face: sol.face })
       setXcross(data.solutions)
     } catch (e) {
       setXcrossError(`x-cross failed: ${e instanceof Error ? e.message : String(e)}`)
@@ -103,8 +101,7 @@ function SolutionRow({ sol, scramble, onAnimate }: { sol: CrossSolution; scrambl
     setXxcrossLoading(true)
     setXxcrossError(null)
     try {
-      const data = await requestSolve<{ solutions: XXCrossSolution[] }>('/solve/xxcross', { state: currentScramble, face: sol.face },
-        { serviceUrl: settings.ml_service_url, timeoutMs: 30000 })
+      const data = await localSolve<{ solutions: XXCrossSolution[] }>('/solve/xxcross', { state: currentScramble, face: sol.face })
       setXxcross(data.solutions)
     } catch (e) {
       setXxcrossError(`double x-cross failed: ${e instanceof Error ? e.message : String(e)}`)

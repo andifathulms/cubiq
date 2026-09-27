@@ -13,21 +13,6 @@ export type SolverEndpoint =
   | '/solve/444'
   | '/solve/555'
 
-/** Endpoints served in the browser; anything else still goes to cubiq-ml. */
-export const LOCAL_ENDPOINTS: ReadonlySet<SolverEndpoint> = new Set<SolverEndpoint>([
-  '/solve',
-  '/solve/222',
-  '/solve/pyram',
-  '/solve/skewb',
-  '/solve/cfop',
-  '/solve/xcross',
-  '/solve/xxcross',
-  '/solve/minx',
-  '/solve/sq1',
-  '/solve/444',
-  '/solve/555',
-])
-
 export type WorkerRequest = { id: number; endpoint: SolverEndpoint; body: Record<string, unknown> }
 
 export type WorkerResponse =

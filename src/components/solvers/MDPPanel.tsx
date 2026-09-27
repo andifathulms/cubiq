@@ -277,7 +277,8 @@ export function MDPPanel() {
           className="mb-4 px-3 py-2.5 rounded-xl text-xs"
           style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
         >
-          Connect to cubiq-ml via the <strong>Optimal Solver</strong> card above, then refresh.
+          This experimental panel talks to the optional Python <strong>cubiq-ml</strong> service (every other
+          solver runs in your browser). Start it locally, set its URL in Settings, then refresh.
         </div>
       )}
 

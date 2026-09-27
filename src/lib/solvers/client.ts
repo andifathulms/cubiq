@@ -1,9 +1,8 @@
-// Browser-side entry point for every solver. Replaces the old cubiq-ml HTTP
-// calls: the searches run in a Web Worker (see worker.ts) so the UI never
-// freezes. Endpoint names and response shapes mirror the former FastAPI
-// routes so the solver cards barely changed.
+// Browser-side entry point for every solver (formerly HTTP calls to the
+// Python cubiq-ml service): the searches run in a Web Worker (worker.ts) so
+// the UI never freezes, with tables built on first use and kept for the
+// session. Endpoint names and response shapes mirror the old FastAPI routes.
 
-import { LOCAL_ENDPOINTS } from './protocol'
 import type { SolverEndpoint, WorkerRequest, WorkerResponse } from './protocol'
 
 type Pending = { resolve: (v: unknown) => void; reject: (e: Error) => void }
@@ -41,26 +40,4 @@ export function localSolve<T>(endpoint: SolverEndpoint, body: Record<string, unk
     pending.set(id, { resolve: resolve as (v: unknown) => void, reject })
     w.postMessage({ id, endpoint, body } satisfies WorkerRequest)
   })
-}
-
-/** Solve locally when the endpoint has been ported, else ask cubiq-ml. */
-export async function requestSolve<T>(
-  endpoint: SolverEndpoint,
-  body: Record<string, unknown>,
-  opts: { serviceUrl: string; timeoutMs: number },
-): Promise<T> {
-  if (LOCAL_ENDPOINTS.has(endpoint)) return localSolve<T>(endpoint, body)
-  const res = await fetch(`${opts.serviceUrl}${endpoint}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(opts.timeoutMs),
-  })
-  if (!res.ok) {
-    const text = await res.text()
-    let detail = 'Solve failed'
-    try { detail = JSON.parse(text).detail ?? detail } catch { /* non-JSON error body */ }
-    throw new Error(detail)
-  }
-  return res.json() as Promise<T>
 }

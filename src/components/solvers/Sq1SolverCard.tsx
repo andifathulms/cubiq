@@ -5,8 +5,7 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { Sq1AnimatedView } from '@/components/solvers/Sq1AnimatedView'
 import { Sq1View3D } from '@/components/solvers/Sq1View3D'
 import { AnimatedCube } from '@/components/solvers/AnimatedCube'
-import { useCubiqStore } from '@/store'
-import { requestSolve } from '@/lib/solvers/client'
+import { localSolve } from '@/lib/solvers/client'
 
 interface StageSq1 {
   name: string
@@ -46,7 +45,6 @@ function CopyButton({ text }: { text: string }) {
 }
 
 export function Sq1SolverCard({ scramble }: { scramble: string }) {
-  const settings = useCubiqStore(s => s.settings)
   const [solving, setSolving] = useState(false)
   const [result, setResult] = useState<ResultSq1 | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -69,12 +67,9 @@ export function Sq1SolverCard({ scramble }: { scramble: string }) {
     setError(null)
     setAnim(null)
     try {
-      setResult(await requestSolve<ResultSq1>('/solve/sq1', { state: scramble },
-        { serviceUrl: settings.ml_service_url, timeoutMs: 120000 }))
+      setResult(await localSolve<ResultSq1>('/solve/sq1', { state: scramble }))
     } catch (e) {
-      setError(e instanceof Error && e.name === 'TimeoutError'
-        ? 'Request timed out — is the cubiq-ml service running?'
-        : String(e))
+      setError(e instanceof Error ? e.message : String(e))
     } finally {
       setSolving(false)
     }
