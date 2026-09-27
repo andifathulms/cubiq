@@ -6,6 +6,7 @@ import { solve3x3 } from './twophase'
 import { solve222 } from './s222'
 import { solvePyram } from './pyram'
 import { solveSkewb } from './skewb'
+import { solveMega } from './mega'
 import { FACES, solveCfop, solveDoubleXcross, solveXcross, type CfopFace } from './cfop'
 
 type Handler = (body: Record<string, unknown>) => unknown
@@ -41,6 +42,7 @@ export const HANDLERS: Partial<Record<SolverEndpoint, Handler>> = {
     tryXcross: body.try_xcross !== false,
     tryDoubleXcross: body.try_double_xcross === true,
   }),
+  '/solve/minx': body => solveMega(str(body.state)),
   '/solve/xcross': body =>
     solveXcross(str(body.state), face(body.face, 'D') as CfopFace, int(body.max_solutions, 2, 1, 3)),
   '/solve/xxcross': body =>
