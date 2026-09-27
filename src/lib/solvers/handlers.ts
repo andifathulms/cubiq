@@ -5,6 +5,7 @@ import type { SolverEndpoint } from './protocol'
 import { solve3x3 } from './twophase'
 import { solve222 } from './s222'
 import { solvePyram } from './pyram'
+import { solveSkewb } from './skewb'
 
 type Handler = (body: Record<string, unknown>) => unknown
 
@@ -23,4 +24,5 @@ export const HANDLERS: Partial<Record<SolverEndpoint, Handler>> = {
   '/solve': body => solve3x3(str(body.state)),
   '/solve/222': body => timed(() => solve222(str(body.state), int(body.max_alternatives, 3, 1, 5))),
   '/solve/pyram': body => timed(() => solvePyram(str(body.state), int(body.max_alternatives, 3, 1, 5))),
+  '/solve/skewb': body => timed(() => solveSkewb(str(body.state), int(body.max_alternatives, 3, 1, 5))),
 }

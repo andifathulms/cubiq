@@ -1,4 +1,3 @@
-// @ts-nocheck
 /* eslint-disable */
 // min2phase — Kociemba two-phase 3x3x3 solver by Chen Shuang (cs0x7f),
 // MIT licensed: https://github.com/cs0x7f/min2phase
