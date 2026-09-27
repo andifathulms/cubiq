@@ -89,8 +89,8 @@ function SolutionRow({ sol, scramble, onAnimate }: { sol: CrossSolution; scrambl
       const data = await requestSolve<{ solutions: XCrossSolution[] }>('/solve/xcross', { state: currentScramble, face: sol.face },
         { serviceUrl: settings.ml_service_url, timeoutMs: 30000 })
       setXcross(data.solutions)
-    } catch {
-      setXcrossError('x-cross needs the cubiq-ml service — is it running?')
+    } catch (e) {
+      setXcrossError(`x-cross failed: ${e instanceof Error ? e.message : String(e)}`)
     } finally {
       setXcrossLoading(false)
     }
@@ -106,8 +106,8 @@ function SolutionRow({ sol, scramble, onAnimate }: { sol: CrossSolution; scrambl
       const data = await requestSolve<{ solutions: XXCrossSolution[] }>('/solve/xxcross', { state: currentScramble, face: sol.face },
         { serviceUrl: settings.ml_service_url, timeoutMs: 30000 })
       setXxcross(data.solutions)
-    } catch {
-      setXxcrossError('double x-cross needs the cubiq-ml service — is it running?')
+    } catch (e) {
+      setXxcrossError(`double x-cross failed: ${e instanceof Error ? e.message : String(e)}`)
     } finally {
       setXxcrossLoading(false)
     }

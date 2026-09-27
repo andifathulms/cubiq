@@ -19,6 +19,9 @@ export const LOCAL_ENDPOINTS: ReadonlySet<SolverEndpoint> = new Set<SolverEndpoi
   '/solve/222',
   '/solve/pyram',
   '/solve/skewb',
+  '/solve/cfop',
+  '/solve/xcross',
+  '/solve/xxcross',
 ])
 
 export type WorkerRequest = { id: number; endpoint: SolverEndpoint; body: Record<string, unknown> }
