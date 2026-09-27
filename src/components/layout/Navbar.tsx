@@ -13,7 +13,8 @@ export function Navbar() {
   const { exportData, importData } = useCubiqStore()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [importMode, setImportMode] = useState<'merge' | 'replace'>('merge')
-  const pathname = usePathname()
+  // trailingSlash export: '/stats/' -> '/stats' ('/' stays '/')
+  const pathname = usePathname().replace(/(.)\/$/, '$1')
   // The Solvers page is a standalone tool — timer sessions don't apply there.
   const showSession = pathname !== '/solvers'
 

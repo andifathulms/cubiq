@@ -15,7 +15,8 @@ const navItems = [
 const STORAGE_KEY = 'cubiq:sidebar-collapsed'
 
 export function Sidebar() {
-  const pathname = usePathname()
+  // trailingSlash export: '/stats/' -> '/stats' ('/' stays '/')
+  const pathname = usePathname().replace(/(.)\/$/, '$1')
   // Timer session stats are irrelevant on the standalone Solvers page.
   const showStats = pathname !== '/solvers'
 

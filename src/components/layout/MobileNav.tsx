@@ -11,7 +11,8 @@ const navItems = [
 ]
 
 export function MobileNav() {
-  const pathname = usePathname()
+  // trailingSlash export: '/stats/' -> '/stats' ('/' stays '/')
+  const pathname = usePathname().replace(/(.)\/$/, '$1')
 
   return (
     <nav
