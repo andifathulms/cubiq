@@ -6,6 +6,7 @@ import { Sq1AnimatedView } from '@/components/solvers/Sq1AnimatedView'
 import { Sq1View3D } from '@/components/solvers/Sq1View3D'
 import { AnimatedCube } from '@/components/solvers/AnimatedCube'
 import { useCubiqStore } from '@/store'
+import { requestSolve } from '@/lib/solvers/client'
 
 interface StageSq1 {
   name: string
@@ -68,19 +69,8 @@ export function Sq1SolverCard({ scramble }: { scramble: string }) {
     setError(null)
     setAnim(null)
     try {
-      const res = await fetch(`${settings.ml_service_url}/solve/sq1`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state: scramble }),
-        signal: AbortSignal.timeout(120000),
-      })
-      if (!res.ok) {
-        const text = await res.text()
-        let detail = 'Solve failed'
-        try { detail = JSON.parse(text).detail ?? detail } catch { /* non-JSON error body */ }
-        throw new Error(detail)
-      }
-      setResult(await res.json())
+      setResult(await requestSolve<ResultSq1>('/solve/sq1', { state: scramble },
+        { serviceUrl: settings.ml_service_url, timeoutMs: 120000 }))
     } catch (e) {
       setError(e instanceof Error && e.name === 'TimeoutError'
         ? 'Request timed out — is the cubiq-ml service running?'

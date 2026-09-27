@@ -4,6 +4,7 @@ import { Box, Loader, Play, Copy, Check } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedCube } from '@/components/solvers/AnimatedCube'
 import { useCubiqStore } from '@/store'
+import { requestSolve } from '@/lib/solvers/client'
 
 interface Stage555 {
   name: string
@@ -72,19 +73,8 @@ export function Cube555SolverCard({ scramble }: { scramble: string }) {
     setError(null)
     setAnim(null)
     try {
-      const res = await fetch(`${settings.ml_service_url}/solve/555`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state: scramble }),
-        signal: AbortSignal.timeout(1800000),
-      })
-      if (!res.ok) {
-        const text = await res.text()
-        let detail = 'Solve failed'
-        try { detail = JSON.parse(text).detail ?? detail } catch { /* non-JSON error body */ }
-        throw new Error(detail)
-      }
-      setResult(await res.json())
+      setResult(await requestSolve<Result555>('/solve/555', { state: scramble },
+        { serviceUrl: settings.ml_service_url, timeoutMs: 1800000 }))
     } catch (e) {
       setError(e instanceof Error && e.name === 'TimeoutError'
         ? 'Request timed out — is the cubiq-ml service running?'

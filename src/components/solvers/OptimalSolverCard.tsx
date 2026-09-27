@@ -4,21 +4,23 @@ import { Zap, Loader, Play, Copy, Check } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedCube } from '@/components/solvers/AnimatedCube'
 import { useCubiqStore } from '@/store'
+import { requestSolve } from '@/lib/solvers/client'
+import type { SolverEndpoint } from '@/lib/solvers/protocol'
 
 interface OptimalResult {
   moves: string[]
   move_count: number
-  alternatives: string[][]
-  optimal: boolean
+  alternatives?: string[][]
   time_ms: number
 }
 
 interface Props {
   title: string
   description: string
-  endpoint: string        // e.g. '/solve/222'
+  endpoint: SolverEndpoint  // e.g. '/solve/222'
   twistyId: string        // TwistyPlayer puzzle id, e.g. '2x2x2' | 'pyraminx'
   scramble: string        // controlled by the shared ScramblePanel
+  badge?: string          // result tag, e.g. 'OPTIMAL' | 'TWO-PHASE'
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -39,7 +41,7 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-export function OptimalSolverCard({ title, description, endpoint, twistyId, scramble }: Props) {
+export function OptimalSolverCard({ title, description, endpoint, twistyId, scramble, badge = 'OPTIMAL' }: Props) {
   const settings = useCubiqStore(s => s.settings)
   const [solving, setSolving] = useState(false)
   const [result, setResult] = useState<OptimalResult | null>(null)
@@ -62,19 +64,8 @@ export function OptimalSolverCard({ title, description, endpoint, twistyId, scra
     setError(null)
     setShowAnim(false)
     try {
-      const res = await fetch(`${settings.ml_service_url}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state: scramble }),
-        signal: AbortSignal.timeout(30000),
-      })
-      if (!res.ok) {
-        const text = await res.text()
-        let detail = 'Solve failed'
-        try { detail = JSON.parse(text).detail ?? detail } catch { /* non-JSON error body */ }
-        throw new Error(detail)
-      }
-      setResult(await res.json())
+      setResult(await requestSolve<OptimalResult>(endpoint, { state: scramble },
+        { serviceUrl: settings.ml_service_url, timeoutMs: 30000 }))
     } catch (e) {
       setError(e instanceof Error && e.name === 'TimeoutError'
         ? 'Request timed out — is the cubiq-ml service running?'
@@ -127,7 +118,7 @@ export function OptimalSolverCard({ title, description, endpoint, twistyId, scra
               className="text-[10px] font-display font-semibold px-1.5 py-0.5 rounded shrink-0"
               style={{ background: 'var(--accent-success)20', color: 'var(--accent-success)' }}
             >
-              OPTIMAL
+              {badge}
             </span>
             <span className="flex-1 font-mono text-sm break-all" style={{ color: 'var(--text-primary)' }}>
               {result.moves.length > 0 ? result.moves.join(' ') : '(already solved)'}
@@ -146,7 +137,7 @@ export function OptimalSolverCard({ title, description, endpoint, twistyId, scra
             <CopyButton text={result.moves.join(' ')} />
           </div>
 
-          {result.alternatives.map((alt, i) => (
+          {(result.alternatives ?? []).map((alt, i) => (
             <div key={i} className="flex items-center gap-2 pl-8">
               <span className="font-mono text-xs break-all" style={{ color: 'var(--text-secondary)' }}>
                 {alt.join(' ')}

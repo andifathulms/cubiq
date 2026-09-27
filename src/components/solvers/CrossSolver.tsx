@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { RefreshCw, Copy, Check, Play } from 'lucide-react'
 import { useCubiqStore } from '@/store'
 import { solveAllCrosses } from '@/lib/solver'
+import { requestSolve } from '@/lib/solvers/client'
 import { GlassCard } from '@/components/ui/GlassCard'
 import type { CrossSolution } from '@/types'
 
@@ -85,14 +86,8 @@ function SolutionRow({ sol, scramble, onAnimate }: { sol: CrossSolution; scrambl
     setXcrossLoading(true)
     setXcrossError(null)
     try {
-      const res = await fetch(`${settings.ml_service_url}/solve/xcross`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state: currentScramble, face: sol.face }),
-        signal: AbortSignal.timeout(30000),
-      })
-      if (!res.ok) throw new Error(`service returned ${res.status}`)
-      const data = await res.json()
+      const data = await requestSolve<{ solutions: XCrossSolution[] }>('/solve/xcross', { state: currentScramble, face: sol.face },
+        { serviceUrl: settings.ml_service_url, timeoutMs: 30000 })
       setXcross(data.solutions)
     } catch {
       setXcrossError('x-cross needs the cubiq-ml service — is it running?')
@@ -108,14 +103,8 @@ function SolutionRow({ sol, scramble, onAnimate }: { sol: CrossSolution; scrambl
     setXxcrossLoading(true)
     setXxcrossError(null)
     try {
-      const res = await fetch(`${settings.ml_service_url}/solve/xxcross`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state: currentScramble, face: sol.face }),
-        signal: AbortSignal.timeout(30000),
-      })
-      if (!res.ok) throw new Error(`service returned ${res.status}`)
-      const data = await res.json()
+      const data = await requestSolve<{ solutions: XXCrossSolution[] }>('/solve/xxcross', { state: currentScramble, face: sol.face },
+        { serviceUrl: settings.ml_service_url, timeoutMs: 30000 })
       setXxcross(data.solutions)
     } catch {
       setXxcrossError('double x-cross needs the cubiq-ml service — is it running?')

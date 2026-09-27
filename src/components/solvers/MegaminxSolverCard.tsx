@@ -4,6 +4,7 @@ import { Pentagon, Loader, Play, Copy, Check } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedCube } from '@/components/solvers/AnimatedCube'
 import { useCubiqStore } from '@/store'
+import { requestSolve } from '@/lib/solvers/client'
 
 interface MinxStage {
   name: string
@@ -72,19 +73,8 @@ export function MegaminxSolverCard({ scramble }: { scramble: string }) {
     setError(null)
     setAnim(null)
     try {
-      const res = await fetch(`${settings.ml_service_url}/solve/minx`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state: scramble }),
-        signal: AbortSignal.timeout(600000),
-      })
-      if (!res.ok) {
-        const text = await res.text()
-        let detail = 'Solve failed'
-        try { detail = JSON.parse(text).detail ?? detail } catch { /* non-JSON error body */ }
-        throw new Error(detail)
-      }
-      setResult(await res.json())
+      setResult(await requestSolve<MinxResult>('/solve/minx', { state: scramble },
+        { serviceUrl: settings.ml_service_url, timeoutMs: 600000 }))
     } catch (e) {
       setError(e instanceof Error && e.name === 'TimeoutError'
         ? 'Request timed out — is the cubiq-ml service running?'

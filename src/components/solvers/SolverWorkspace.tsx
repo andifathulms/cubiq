@@ -7,7 +7,6 @@ import { Cube555SolverCard } from '@/components/solvers/Cube555SolverCard'
 import { MegaminxSolverCard } from '@/components/solvers/MegaminxSolverCard'
 import { Sq1SolverCard } from '@/components/solvers/Sq1SolverCard'
 import { OptimalSolverCard } from '@/components/solvers/OptimalSolverCard'
-import { MLSolverCard } from '@/components/solvers/MLSolverCard'
 import { MDPPanel } from '@/components/solvers/MDPPanel'
 import { ScramblePanel } from '@/components/solvers/ScramblePanel'
 import { TWISTY_PUZZLE_IDS } from '@/lib/cubing'
@@ -31,7 +30,7 @@ interface Tab {
 }
 
 const TABS: Tab[] = [
-  { id: '333', label: '3×3', glyph: '🧩', blurb: 'Cross, x-cross and full CFOP staging, plus a Kociemba optimal solve.' },
+  { id: '333', label: '3×3', glyph: '🧩', blurb: 'Cross, x-cross and full CFOP staging, plus a Kociemba-style two-phase solve.' },
   { id: '222', label: '2×2', glyph: '◻', blurb: 'Every position precomputed — provably optimal, ≤ 11 moves.' },
   { id: '444', label: '4×4', glyph: '⬛', blurb: 'Reduction: centers → edge pairing → 3×3 finish, with parity handling.' },
   { id: '555', label: '5×5', glyph: '⬛', blurb: 'Reduction on the bigger cube: both center orbits, wing pairing, then CFOP.' },
@@ -133,7 +132,11 @@ export function SolverWorkspace() {
               <>
                 <CrossSolver scramble={scr} />
                 <CFOPSolverCard scramble={scr} />
-                <MLSolverCard scramble={scr} />
+                <OptimalSolverCard
+                  title="Two-Phase Solver"
+                  description="Kociemba-style two-phase search (via cubing.js) — a complete solution in about 20 moves, found in well under a second. Short, but not guaranteed optimal."
+                  endpoint="/solve" twistyId="3x3x3" scramble={scr} badge="TWO-PHASE"
+                />
               </>
             )}
             {tab === '222' && (

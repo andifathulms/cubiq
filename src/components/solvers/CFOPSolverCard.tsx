@@ -4,6 +4,7 @@ import { Layers, Loader, Play, Copy, Check } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { AnimatedCube } from '@/components/solvers/AnimatedCube'
 import { useCubiqStore } from '@/store'
+import { requestSolve } from '@/lib/solvers/client'
 
 interface CFOPStage {
   name: string
@@ -93,19 +94,8 @@ export function CFOPSolverCard({ scramble }: { scramble?: string } = {}) {
     setError(null)
     setAnim(null)
     try {
-      const res = await fetch(`${settings.ml_service_url}/solve/cfop`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state: currentScramble, face, try_double_xcross: doubleXcross }),
-        signal: AbortSignal.timeout(60000),
-      })
-      if (!res.ok) {
-        const text = await res.text()
-        let detail = 'Solve failed'
-        try { detail = JSON.parse(text).detail ?? detail } catch { /* non-JSON error body */ }
-        throw new Error(detail)
-      }
-      setResult(await res.json())
+      setResult(await requestSolve<CFOPResult>('/solve/cfop', { state: currentScramble, face, try_double_xcross: doubleXcross },
+        { serviceUrl: settings.ml_service_url, timeoutMs: 60000 }))
     } catch (e) {
       setError(e instanceof Error && e.name === 'TimeoutError'
         ? 'Request timed out — is the cubiq-ml service running?'
