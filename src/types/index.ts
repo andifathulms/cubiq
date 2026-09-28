@@ -32,7 +32,8 @@ export interface Settings {
   cube_dock: 'net' | '3d' | 'hidden'
 }
 
-export type TimerState = 'idle' | 'ready' | 'inspection' | 'running' | 'stopped'
+// holding: pressed, arming (red) · ready: armed, release to start (green)
+export type TimerState = 'idle' | 'holding' | 'ready' | 'inspection' | 'running' | 'stopped'
 
 export interface CrossSolution {
   face: 'D' | 'U' | 'F' | 'B' | 'L' | 'R'

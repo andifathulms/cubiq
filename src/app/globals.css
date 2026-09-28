@@ -220,6 +220,9 @@ h1, h2, h3 { text-wrap: balance; }
   background-clip: padding-box;
 }
 
+/* Component classes live in the components layer so Tailwind utilities
+   (hidden, md:inline-flex, …) can still override them. */
+@layer components {
 /* ── Surfaces ──────────────────────────────────────────────────────────── */
 
 .card {
@@ -335,6 +338,8 @@ kbd, .kbd {
 .pill-plus2 { background: color-mix(in srgb, var(--plus2) 18%, transparent); color: var(--plus2); }
 .pill-dnf { background: color-mix(in srgb, var(--stop) 16%, transparent); color: var(--stop); }
 .pill-go { background: color-mix(in srgb, var(--go) 16%, transparent); color: var(--go); }
+
+}
 
 /* ── Motion ────────────────────────────────────────────────────────────── */
 

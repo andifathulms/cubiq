@@ -1,171 +1,193 @@
 'use client'
-import dynamic from 'next/dynamic'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
-import { Eye, EyeOff, Wand2 } from 'lucide-react'
+import { Shuffle, Box, Keyboard, Eye } from 'lucide-react'
 import { AppShell } from '@/components/layout/AppShell'
-import { SessionSelector } from '@/components/session/SessionSelector'
-import { TimerDisplay } from '@/components/timer/TimerDisplay'
-import { TimerControls } from '@/components/timer/TimerControls'
-import { InspectionTimer } from '@/components/timer/InspectionTimer'
-import { ScrambleDisplay } from '@/components/scramble/ScrambleDisplay'
-import { ScrambleGenerator } from '@/components/scramble/ScrambleGenerator'
+import { SessionChip } from '@/components/session/SessionChip'
+import { ScrambleChips } from '@/components/practice/ScrambleChips'
+import { TimerFace } from '@/components/practice/TimerFace'
+import { StatsStrip } from '@/components/practice/StatsStrip'
+import { ScramblePreview } from '@/components/practice/ScramblePreview'
+import { Confetti } from '@/components/practice/Confetti'
+import { ShortcutsDialog } from '@/components/practice/ShortcutsDialog'
+import { useTimerEngine } from '@/components/practice/useTimerEngine'
+import { Modal } from '@/components/ui/Modal'
+import { Segmented } from '@/components/ui/Toggle'
 import { useCubiqStore } from '@/store'
-import { formatTime, getEffectiveTime } from '@/lib/stats'
-import { TWISTY_PUZZLE_IDS } from '@/lib/cubing'
+import { moveCount, PUZZLE_LABEL, recordsOfLast } from '@/lib/practice'
+import type { Solve } from '@/types'
 
-const CubePreview3D = dynamic(
-  () => import('@/components/scramble/CubePreview3D').then(m => m.CubePreview3D),
-  { ssr: false, loading: () => <div style={{ width: 220, height: 220 }} /> }
-)
-
-// Puzzles that have a solver tab (everything except clock)
 const SOLVER_PUZZLES = new Set(['222', '333', '444', '555', 'pyram', 'skewb', 'minx', 'sq1'])
+const NO_RECORDS = { single: false, ao5: false, ao12: false }
 
-function SolvePenaltyBar() {
-  const { getActiveSession, updateSolve, deleteSolve } = useCubiqStore()
-  const session = getActiveSession()
-  const solves = session?.solves ?? []
-  const lastSolve = solves[solves.length - 1]
-  if (!lastSolve) return null
-
-  const effective = getEffectiveTime(lastSolve)
-
-  return (
-    <div className="flex items-center gap-3 justify-center mt-2">
-      <span className="text-sm font-mono tabular-nums" style={{ color: 'var(--text-secondary)' }}>
-        {formatTime(effective)}
-        {lastSolve.penalty && (
-          <span className="ml-1 text-xs" style={{ color: lastSolve.penalty === 'DNF' ? 'var(--accent-danger)' : 'var(--accent-warning)' }}>
-            ({lastSolve.penalty})
-          </span>
-        )}
-      </span>
-      <button
-        onClick={() => updateSolve(session!.id, lastSolve.id, { penalty: lastSolve.penalty === '+2' ? null : '+2' })}
-        className="px-2 py-0.5 rounded text-xs font-mono border transition-colors"
-        style={{
-          borderColor: lastSolve.penalty === '+2' ? 'var(--accent-warning)' : 'var(--border)',
-          color: lastSolve.penalty === '+2' ? 'var(--accent-warning)' : 'var(--text-muted)',
-        }}
-      >
-        +2
-      </button>
-      <button
-        onClick={() => updateSolve(session!.id, lastSolve.id, { penalty: lastSolve.penalty === 'DNF' ? null : 'DNF' })}
-        className="px-2 py-0.5 rounded text-xs font-mono border transition-colors"
-        style={{
-          borderColor: lastSolve.penalty === 'DNF' ? 'var(--accent-danger)' : 'var(--border)',
-          color: lastSolve.penalty === 'DNF' ? 'var(--accent-danger)' : 'var(--text-muted)',
-        }}
-      >
-        DNF
-      </button>
-      <button
-        onClick={() => deleteSolve(session!.id, lastSolve.id)}
-        className="px-2 py-0.5 rounded text-xs font-mono border transition-colors"
-        style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
-      >
-        Del
-      </button>
-    </div>
-  )
-}
-
-export default function TimerPage() {
-  const { currentScramble, settings, updateSettings, timerState } = useCubiqStore()
-  const activePuzzle = useCubiqStore(
-    s => s.sessions.find(sess => sess.id === s.activeSessionId)?.puzzle ?? '333'
-  )
-  const [isHydrated, setIsHydrated] = useState(false)
+export default function PracticePage() {
+  const router = useRouter()
+  const [hydrated, setHydrated] = useState(false)
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => setIsHydrated(true), [])
+  useEffect(() => setHydrated(true), [])
 
-  const hideScramble = timerState === 'running'
+  const { currentScramble, timerState, settings, updateSettings, nextScramble, updateSolve, deleteSolve, restoreSolve } = useCubiqStore()
+  const session = useCubiqStore(s => s.sessions.find(x => x.id === s.activeSessionId))
+  const solves = useMemo(() => session?.solves ?? [], [session])
+  const puzzle = session?.puzzle ?? '333'
+
+  const stageRef = useRef<HTMLDivElement>(null)
+  useTimerEngine(stageRef)
+
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [undo, setUndo] = useState<{ solve: Solve; index: number; sessionId: string } | null>(null)
+  const [confetti, setConfetti] = useState(0)
+
+  useEffect(() => { if (hydrated && !currentScramble) nextScramble() }, [hydrated, currentScramble, nextScramble])
+
+  const records = useMemo(() => (timerState === 'stopped' ? recordsOfLast(solves) : NO_RECORDS), [solves, timerState])
+
+  // Celebrate once, when a solve that set a record lands
+  const lastCount = useRef<number | null>(null)
+  useEffect(() => {
+    if (!hydrated) return
+    if (lastCount.current !== null && solves.length === lastCount.current + 1) {
+      const r = recordsOfLast(solves)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (r.single || r.ao5 || r.ao12) setConfetti(c => c + 1)
+    }
+    lastCount.current = solves.length
+  }, [solves, hydrated])
+
+  const deleteLast = useCallback(() => {
+    if (!session || !solves.length) return
+    const index = solves.length - 1
+    setUndo({ solve: solves[index], index, sessionId: session.id })
+    deleteSolve(session.id, solves[index].id)
+    useCubiqStore.getState().setTimerState('idle')
+    useCubiqStore.getState().setCurrentTime(0)
+  }, [session, solves, deleteSolve])
+
+  useEffect(() => {
+    if (!undo) return
+    const t = setTimeout(() => setUndo(null), 6000)
+    return () => clearTimeout(t)
+  }, [undo])
+
+  const labHref = `/lab?puzzle=${puzzle}&scramble=${encodeURIComponent(currentScramble)}`
+
+  // Page shortcuts (only between solves)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement
+      if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable || document.querySelector('[role="dialog"]')) return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const st = useCubiqStore.getState()
+      if (st.timerState !== 'idle' && st.timerState !== 'stopped') return
+      const last = solves[solves.length - 1]
+      if (e.key === 'n' || e.key === 'N') nextScramble()
+      else if (e.key === '?') setShortcutsOpen(true)
+      else if ((e.key === 's' || e.key === 'S') && SOLVER_PUZZLES.has(puzzle)) router.push(labHref)
+      else if (last && session && e.key === '2') updateSolve(session.id, last.id, { penalty: last.penalty === '+2' ? null : '+2' })
+      else if (last && session && (e.key === 'd' || e.key === 'D')) updateSolve(session.id, last.id, { penalty: last.penalty === 'DNF' ? null : 'DNF' })
+      else if (last && (e.key === 'Backspace' || e.key === 'Delete')) { e.preventDefault(); deleteLast() }
+      else return
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [solves, session, puzzle, labHref, nextScramble, updateSolve, deleteLast, router])
+
+  const running = timerState === 'running'
+  const focus = running || timerState === 'inspection'
+  const fade = (on: boolean) => ({ opacity: on ? 0.08 : 1, transition: 'opacity 0.25s ease', pointerEvents: on ? 'none' as const : undefined })
+  const dock = settings.cube_dock
 
   return (
     <AppShell>
-        <div className="flex flex-col min-h-full relative">
-          <div className="flex items-center justify-between px-4 md:px-8 pt-4 md:pt-6">
-            <SessionSelector />
-          </div>
-          {/* Scramble area */}
-          <div
-            className="flex flex-col items-center gap-1 pt-6 px-4 transition-opacity duration-200"
-            style={{ opacity: hideScramble ? 0 : 1, pointerEvents: hideScramble ? 'none' : 'auto' }}
-          >
-            <div className="flex items-center justify-center gap-2">
-              <ScrambleGenerator />
-              <ScrambleDisplay scramble={currentScramble} />
-            </div>
-            {currentScramble && SOLVER_PUZZLES.has(activePuzzle) && (
-              <Link
-                href={`/lab?puzzle=${activePuzzle}&scramble=${encodeURIComponent(currentScramble)}`}
-                className="flex items-center gap-1 text-xs font-medium transition-colors"
-                style={{ color: 'var(--text-muted)' }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'var(--accent-primary)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-              >
-                <Wand2 size={12} />
-                Solve this scramble →
+      <div className="flex flex-col min-h-full px-4 md:px-8 pt-4 md:pt-6 pb-4 md:pb-6 gap-5">
+        <header className="flex items-center justify-between gap-3" style={fade(focus)}>
+          <SessionChip />
+          <div className="flex items-center gap-1.5">
+            <button className="btn btn-ghost btn-sm" onClick={nextScramble} title="New scramble (N)">
+              <Shuffle size={14} /> <span className="hidden sm:inline">New scramble</span> <kbd className="hidden lg:inline">N</kbd>
+            </button>
+            {SOLVER_PUZZLES.has(puzzle) && (
+              <Link href={labHref} className="btn btn-ghost btn-sm" title="Open this scramble in Solve Lab (S)">
+                <Box size={14} /> <span className="hidden sm:inline">Solve it</span>
               </Link>
             )}
+            <button className="btn btn-ghost btn-sm lg:hidden" onClick={() => setPreviewOpen(true)} aria-label="Show scrambled cube">
+              <Eye size={14} />
+            </button>
+            <button className="btn btn-ghost btn-sm hidden md:inline-flex" onClick={() => setShortcutsOpen(true)} aria-label="Keyboard shortcuts">
+              <Keyboard size={14} />
+            </button>
           </div>
+        </header>
 
-          {/* Timer area */}
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 px-4 select-none">
-            <TimerControls />
-            <InspectionTimer />
-            <TimerDisplay />
-            {isHydrated && timerState === 'stopped' && <SolvePenaltyBar />}
-            {isHydrated && (timerState === 'idle' || timerState === 'stopped') && (
-              <p className="flex items-center gap-2 text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-                Hold
-                <kbd
-                  className="px-2 py-0.5 rounded-md font-mono text-[11px] font-bold border"
-                  style={{ borderColor: 'var(--border)', background: 'var(--bg-glass)', color: 'var(--text-secondary)' }}
-                >
-                  Space
-                </kbd>
-                to start
-              </p>
-            )}
-          </div>
+        <section className="flex flex-col items-center gap-2.5 pt-1" style={fade(running)}>
+          {hydrated && <ScrambleChips scramble={currentScramble} puzzle={puzzle} size={settings.scramble_size} />}
+          {hydrated && currentScramble && (
+            <span className="num text-[11px] text-faint">
+              {PUZZLE_LABEL[puzzle]} · {moveCount(currentScramble, puzzle)} {puzzle === 'sq1' ? 'slashes' : 'moves'}
+            </span>
+          )}
+        </section>
 
-          {/* 3D Cube preview */}
-          {isHydrated && (
-            <div
-              className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-30 transition-opacity duration-300"
-              style={{ opacity: hideScramble ? 0 : 1, pointerEvents: hideScramble ? 'none' : 'auto' }}
-            >
-              {settings.cube_preview_visible ? (
-                <div className="card p-2 relative group" style={{ boxShadow: 'var(--shadow-lg)' }}>
-                  <CubePreview3D
-                    scramble={currentScramble}
-                    interactive
-                    puzzle={TWISTY_PUZZLE_IDS[activePuzzle] ?? '3x3x3'}
-                  />
-                  <button
-                    onClick={() => updateSettings({ cube_preview_visible: false })}
-                    className="absolute top-1 right-1 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}
-                  >
-                    <EyeOff size={12} />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => updateSettings({ cube_preview_visible: true })}
-                  className="p-2 rounded-xl glass transition-colors"
-                  style={{ color: 'var(--text-muted)' }}
-                  title="Show cube"
-                >
-                  <Eye size={16} />
-                </button>
-              )}
+        <div
+          ref={stageRef}
+          className="relative flex-1 min-h-[300px] grid place-items-center touch-none select-none rounded-3xl cursor-pointer"
+          aria-label="Timer. Hold Space or touch and hold, release to start."
+        >
+          <Confetti fire={confetti} />
+          {hydrated && <TimerFace records={records} onDelete={deleteLast} />}
+
+          {hydrated && dock !== 'hidden' && (
+            <div className="hidden lg:flex absolute right-0 bottom-0 flex-col items-end gap-2" style={fade(focus)} data-no-timer>
+              <Segmented
+                label="Cube preview" value={dock}
+                options={[{ value: 'net', label: 'Net' }, { value: '3d', label: '3D' }, { value: 'hidden', label: 'Hide' }]}
+                onChange={v => updateSettings({ cube_dock: v })}
+              />
+              <div className="card p-3 grid place-items-center">
+                <ScramblePreview scramble={currentScramble} puzzle={puzzle} mode={dock} size={dock === 'net' ? 200 : 170} />
+              </div>
             </div>
           )}
+          {hydrated && dock === 'hidden' && (
+            <button
+              className="hidden lg:inline-flex absolute right-0 bottom-0 btn btn-ghost btn-sm" data-no-timer style={fade(focus)}
+              onClick={() => updateSettings({ cube_dock: 'net' })}
+            >
+              <Eye size={14} /> Show cube
+            </button>
+          )}
         </div>
+
+        <div style={fade(focus)}>{hydrated && <StatsStrip solves={solves} />}</div>
+      </div>
+
+      {undo && (
+        <div role="status" className="fixed z-50 left-1/2 -translate-x-1/2 bottom-[calc(80px+env(safe-area-inset-bottom))] md:bottom-6 flex items-center gap-3 pl-4 pr-2 py-2 rounded-xl bg-ink text-bg shadow-lg text-sm animate-fade-in">
+          Solve deleted
+          <button
+            className="btn btn-sm bg-bg/15 text-bg hover:bg-bg/25"
+            onClick={() => { restoreSolve(undo.sessionId, undo.solve, undo.index); setUndo(null) }}
+          >
+            Undo
+          </button>
+        </div>
+      )}
+
+      <ShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <Modal open={previewOpen} onClose={() => setPreviewOpen(false)} title="Scrambled cube">
+        <div className="flex flex-col items-center gap-4">
+          <Segmented
+            label="Preview" value={dock === 'hidden' ? 'net' : dock}
+            options={[{ value: 'net', label: 'Net' }, { value: '3d', label: '3D' }]}
+            onChange={v => updateSettings({ cube_dock: v })}
+          />
+          <ScramblePreview scramble={currentScramble} puzzle={puzzle} mode={dock === '3d' ? '3d' : 'net'} size={260} />
+          <ScrambleChips scramble={currentScramble} puzzle={puzzle} size="sm" />
+        </div>
+      </Modal>
     </AppShell>
   )
 }

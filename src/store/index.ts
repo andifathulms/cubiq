@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { computeStats } from '@/lib/stats'
 import { exportToJSON, importFromJSON } from '@/lib/export'
+import { generateScramble } from '@/lib/cubing'
+import { pushScrambleHistory } from '@/lib/storage'
 import type { Session, Solve, Settings, TimerState, SessionStats } from '@/types'
 
 const DEFAULT_SETTINGS: Settings = {
@@ -42,10 +44,14 @@ interface CubiqStore {
   setCurrentTime: (ms: number) => void
   setInspectionTime: (s: number) => void
   setCurrentScramble: (scramble: string) => void
+  /** Fresh scramble for the active session's puzzle. */
+  nextScramble: () => void
 
   addSolve: (solve: Omit<Solve, 'id' | 'created_at'>) => void
   updateSolve: (sessionId: string, solveId: string, update: Partial<Solve>) => void
   deleteSolve: (sessionId: string, solveId: string) => void
+  /** Put a deleted solve back at its old position (undo). */
+  restoreSolve: (sessionId: string, solve: Solve, index: number) => void
 
   createSession: (name: string, puzzle?: string) => void
   renameSession: (id: string, name: string) => void
@@ -85,6 +91,12 @@ export const useCubiqStore = create<CubiqStore>()(
       setCurrentTime: ms => set({ currentTime: ms }),
       setInspectionTime: s => set({ inspectionTime: s }),
       setCurrentScramble: scramble => set({ currentScramble: scramble }),
+      nextScramble: () => {
+        const puzzle = get().getActiveSession()?.puzzle ?? '333'
+        const scramble = generateScramble(puzzle)
+        pushScrambleHistory(scramble)
+        set({ currentScramble: scramble })
+      },
 
       addSolve: solve => {
         const { sessions, activeSessionId } = get()
@@ -127,6 +139,17 @@ export const useCubiqStore = create<CubiqStore>()(
         }))
       },
 
+      restoreSolve: (sessionId, solve, index) => {
+        set(state => ({
+          sessions: state.sessions.map(s => {
+            if (s.id !== sessionId || s.solves.some(x => x.id === solve.id)) return s
+            const solves = [...s.solves]
+            solves.splice(Math.min(index, solves.length), 0, solve)
+            return { ...s, solves }
+          }),
+        }))
+      },
+
       createSession: (name, puzzle = '333') => {
         const newSession: Session = {
           id: crypto.randomUUID(),
@@ -138,7 +161,10 @@ export const useCubiqStore = create<CubiqStore>()(
         set(state => ({
           sessions: [...state.sessions, newSession],
           activeSessionId: newSession.id,
+          timerState: 'idle',
+          currentTime: 0,
         }))
+        get().nextScramble()
       },
 
       renameSession: (id, name) => {
@@ -162,7 +188,10 @@ export const useCubiqStore = create<CubiqStore>()(
         })
       },
 
-      setActiveSession: id => set({ activeSessionId: id }),
+      setActiveSession: id => {
+        set({ activeSessionId: id, timerState: 'idle', currentTime: 0 })
+        get().nextScramble()
+      },
 
       updateSettings: update =>
         set(state => ({ settings: { ...state.settings, ...update } })),
