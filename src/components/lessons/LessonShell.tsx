@@ -126,7 +126,12 @@ export function LessonLayout({ track, lesson, example, drill }: {
             ))}
           </ol>
         </div>
-        {track.hold && <p className="text-[12.5px] text-muted flex items-center gap-1.5"><Hand size={12} className="shrink-0" /> {track.hold}</p>}
+        {(track.hold || track.after) && (
+          <p className="text-[12.5px] text-muted flex flex-wrap items-center gap-x-4 gap-y-1">
+            {track.hold && <span className="flex items-center gap-1.5"><Hand size={12} className="shrink-0" /> {track.hold}</span>}
+            {track.after && <span>{track.after}.</span>}
+          </p>
+        )}
       </header>
       <section className="card p-4 md:p-6 flex flex-col gap-4">
         <span className="label">Worked example</span>

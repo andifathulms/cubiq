@@ -112,12 +112,78 @@ const CROSS: Lesson[] = [
   },
 ]
 
+
+const XCROSS: Lesson[] = [
+  {
+    id: 'xc-why', track: 'xcross', title: 'Why x-cross pays',
+    goal: 'See what planning one pair with the cross saves.',
+    see: [
+      'After the cross, a first pair usually costs 5–8 moves on its own.',
+      'Planned together with the cross, the same pair often adds only 2–4 moves.',
+      'That saving is why fast solvers plan the cross and look for one pair during inspection.',
+    ],
+    drill: 'Watch three scrambles solved both ways and compare the move counts.',
+    kind: 'xc-watch', watchOnly: 3,
+  },
+  {
+    id: 'xc-free', track: 'xcross', title: 'Free pairs',
+    goal: 'Spot a pair that is already done, or nearly done, before you turn.',
+    see: [
+      'Go round the four bottom slots. Is the slot\'s corner already there, in any orientation?',
+      'Look for a corner and an edge already next to each other with matching colours: a pair already joined.',
+      'A slot like that often costs only 0–1 moves on top of the cross.',
+    ],
+    drill: 'Pick the slot with the shortest x-cross. One slot is clearly best.',
+    kind: 'xc-pick',
+  },
+  {
+    id: 'xc-ride', track: 'xcross', title: 'Pieces the cross moves anyway',
+    goal: 'Use the side turns of your cross to carry a pair piece home.',
+    see: [
+      'Cross moves turn side faces, and side faces carry corners and middle-layer edges with them.',
+      'As you trace your cross, follow one corner and one edge of a slot: does either land in its slot for free?',
+      'Swapping the direction or order of a cross move (R instead of R\') can put a pair piece in place.',
+    ],
+    drill: 'Pick the best slot. Here the pair is not in place yet: the cross moves carry it.',
+    kind: 'xc-pick',
+  },
+  {
+    id: 'xc-keyhole', track: 'xcross', title: 'Keyhole and big savings',
+    goal: 'Recognise the scrambles where x-cross saves four moves or more.',
+    see: [
+      'Keep one bottom slot empty while you build the cross.',
+      'Drop a cross edge in through that empty slot (the keyhole), then fill the slot with its pair.',
+      'These scrambles save 4 or more moves over cross, then pair. They are worth the extra inspection time.',
+    ],
+    drill: 'Pick the slot with the shortest x-cross on scrambles with a big saving.',
+    kind: 'xc-pick',
+  },
+  {
+    id: 'xc-choose', track: 'xcross', title: 'Choose the slot',
+    goal: 'Choose the best slot within inspection.',
+    see: [
+      'Go round all four slots: front-right, front-left, back-right, back-left. Find each slot\'s corner and edge.',
+      'Rule out slots whose pieces are far apart, both in the top layer on opposite sides.',
+      'Of the rest, pick the one whose pieces your cross moves carry toward home.',
+    ],
+    drill: 'Any scramble with a pair worth finding. You have 15 seconds to choose.',
+    kind: 'xc-pick', levels: [{ label: '15 s to choose', min: 0, max: 3, planMs: 15000 }],
+  },
+]
+
 export const TRACKS: Track[] = [
   {
     id: 'cross', title: 'Cross', colour: 'var(--st-U)',
     blurb: 'Read the four white edges before you turn, and plan a 5–7 move cross in inspection.',
     hold: 'Hold white on the bottom and green in front, then scramble.',
     lessons: CROSS,
+  },
+  {
+    id: 'xcross', title: 'X-Cross', colour: 'var(--st-F)',
+    blurb: 'Solve the cross and one F2L pair together, for 1–3 extra moves instead of a whole pair.',
+    hold: 'Hold white on the bottom and green in front, then scramble.',
+    after: 'Best after Cross lesson 6, level 2',
+    lessons: XCROSS,
   },
 ]
 

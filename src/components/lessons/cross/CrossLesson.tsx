@@ -3,8 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowRight, Eye, Map as MapIcon, Shuffle } from 'lucide-react'
 import { useCubiqStore } from '@/store'
 import { CubePlayer } from '@/components/lab/CubePlayer'
-import { ScramblePreview } from '@/components/practice/ScramblePreview'
 import { LessonLayout, MoveLine, PlanGrade } from '@/components/lessons/LessonShell'
+import { ScrambleLine, StillCube, held } from '@/components/lessons/LessonCube'
 import { EdgeMap } from './EdgeMap'
 import { TRACK_BY_ID, type Lesson } from '@/lib/lessons/catalog'
 import { crossCaseFor, edgeToPrice } from '@/lib/lessons/crossCases'
@@ -12,10 +12,6 @@ import {
   COLOUR_VAR, EDGE_SIDE, describe, edgeName, labelSteps, soloRoute, soloTable,
   type CrossCase,
 } from '@/lib/lessons/crossEngine'
-
-// The cube as the lessons hold it: white on the bottom. cubing.js starts
-// with white on top, so every view gets a z2 first.
-const held = (scramble: string) => `z2 ${scramble}`
 
 function Chip({ edge }: { edge: number }) {
   return (
@@ -26,15 +22,6 @@ function Chip({ edge }: { edge: number }) {
       </span>
       {edgeName(edge)}
     </span>
-  )
-}
-
-function ScrambleLine({ scramble }: { scramble: string }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <span className="label">Scramble · white on the bottom, green in front</span>
-      <p className="num text-[13px] leading-relaxed text-ink-2 break-words">{scramble}</p>
-    </div>
   )
 }
 
@@ -112,15 +99,6 @@ function CrossExample({ lesson }: { lesson: Lesson }) {
 }
 
 // ── Drills ────────────────────────────────────────────────────────────────────
-
-function StillCube({ scramble }: { scramble: string }) {
-  return (
-    <div className="grid place-items-center rounded-xl bg-sunk/60 py-2">
-      <ScramblePreview scramble={held(scramble)} puzzle="333" mode="3d" size={220} />
-      <span className="text-[11px] text-muted pb-1">drag to look around</span>
-    </div>
-  )
-}
 
 function FindDrill({ lesson }: { lesson: Lesson }) {
   const recordLesson = useCubiqStore(s => s.recordLesson)

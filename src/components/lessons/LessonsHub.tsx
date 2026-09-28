@@ -4,6 +4,7 @@ import { ChevronDown } from 'lucide-react'
 import { useCubiqStore } from '@/store'
 import { LessonNav } from './LessonShell'
 import { CrossLesson } from './cross/CrossLesson'
+import { XcrossLesson } from './xcross/XcrossLesson'
 import { LESSON_BY_ID, TRACKS } from '@/lib/lessons/catalog'
 
 const REMEMBER = 'cubiq:lesson'
@@ -47,6 +48,7 @@ export function LessonsHub() {
         </div>
       </aside>
       {lesson.track === 'cross' && <CrossLesson key={lesson.id} lesson={lesson} />}
+      {lesson.track === 'xcross' && <XcrossLesson key={lesson.id} lesson={lesson} />}
     </div>
   )
 }

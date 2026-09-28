@@ -10,6 +10,7 @@ import { solveMega } from './mega'
 import { solveSq1 } from './sq1'
 import { solve444 } from './cfop444'
 import { solve555 } from './solver555'
+import { xcrossCase } from '@/lib/lessons/xcrossCases'
 import { FACES, solveCfop, solveDoubleXcross, solveXcross, type CfopFace } from './cfop'
 
 type Handler = (body: Record<string, unknown>) => unknown
@@ -51,6 +52,7 @@ export const HANDLERS: Partial<Record<SolverEndpoint, Handler>> = {
   '/solve/444': body => solve444(str(body.state), face(body.cfop_face, 'D', true), 4, body.try_xcross !== false),
   '/solve/xcross': body =>
     solveXcross(str(body.state), face(body.face, 'D') as CfopFace, int(body.max_solutions, 2, 1, 3)),
+  '/learn/xcross': body => xcrossCase(str(body.lesson)),
   '/solve/xxcross': body =>
     solveDoubleXcross(str(body.state), face(body.face, 'D') as CfopFace, int(body.max_solutions, 2, 1, 2)),
 }

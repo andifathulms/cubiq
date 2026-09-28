@@ -12,6 +12,7 @@ export type SolverEndpoint =
   | '/solve/sq1'
   | '/solve/444'
   | '/solve/555'
+  | '/learn/xcross'   // Learn › Lessons: a scramble for an x-cross lesson
 
 export type WorkerRequest = { id: number; endpoint: SolverEndpoint; body: Record<string, unknown> }
 
