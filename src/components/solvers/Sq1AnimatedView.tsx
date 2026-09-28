@@ -102,8 +102,7 @@ export function Sq1AnimatedView({ setup, alg, height = 230 }: Props) {
       st.raf = requestAnimationFrame(tick)
     }
     s.raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(sim.current.raf)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => cancelAnimationFrame(s.raf)
   }, [setup, alg])
 
   const s = sim.current

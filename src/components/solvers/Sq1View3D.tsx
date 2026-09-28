@@ -8,20 +8,26 @@ import {
   parseSq1Tokens, sq1TokenLabel, sq1Wedges,
 } from '@/lib/sq1'
 
-// Custom 3D Square-1 (cubing.js has no 3D renderer for square1). The puzzle
-// is built from kite/triangle prisms. Faces point along the cardinal
-// directions (N/E/S/W) so the slash cut (north-south) is a symmetry axis —
-// which makes the slash a genuine rigid 180° flip of the moving half about
-// the horizontal north-south (Y) axis, and makes the bottom layer exactly
-// the top rotated 180° about the X axis. Twists rotate a layer about the
-// vertical (Z) axis. Orthographic SVG projection, painter-sorted and drawn
-// double-sided (back faces are dark interior plastic); drag to orbit.
+// Custom 3D Square-1 (cubing.js has no 3D renderer for square1), built from
+// kite/triangle prisms and drawn as an orthographic, painter-sorted SVG;
+// drag to orbit.
+//
+// Geometry (seen from above, 0° = back, clockwise): face centres at
+// 0/90/180/270, and the slash cut runs through 15° and 195°, between an edge
+// and a corner on both sides. A slash turns the moving (west) half 180°
+// about the horizontal axis perpendicular to that cut — the real mechanism —
+// so every point keeps its distance to the cut plane: the moving half sweeps
+// within its own half-space and never passes through the stationary one.
+// Top slot i spans [30i + 15°, 30i + 45°]; bottom slot i is by construction
+// the slash image of top slot i + 6, so a slash lands every wedge exactly on
+// the slot the model assigns it, and twists rotate a layer about the
+// vertical axis.
 
 type V3 = [number, number, number]
 interface Face { pts: V3[]; color: string }
 
 const PLASTIC = '#3a3a48'
-const SHIFT = 15  // face centres at 0/90/180/270, corners at 45/135/225/315
+const CUT = 15                  // the slash cut runs through 15° and 195°
 const R_FACE = 1 / Math.cos(Math.PI / 12)
 const R_CORN = Math.SQRT2
 const Z_CUT = 1 / 3
@@ -29,31 +35,32 @@ const polar = (deg: number, r: number): V3 => {
   const a = (deg * Math.PI) / 180
   return [r * Math.sin(a), r * Math.cos(a), 0]
 }
-const CORNER_POLY: V3[] = [[0, 0, 0], polar(SHIFT, R_FACE), polar(30 + SHIFT, R_CORN), polar(60 + SHIFT, R_FACE)]
-const EDGE_POLY: V3[] = [[0, 0, 0], polar(60 + SHIFT, R_FACE), polar(90 + SHIFT, R_FACE)]
+const CORNER_POLY: V3[] = [[0, 0, 0], polar(CUT, R_FACE), polar(30 + CUT, R_CORN), polar(60 + CUT, R_FACE)]
+const EDGE_POLY: V3[] = [[0, 0, 0], polar(60 + CUT, R_FACE), polar(90 + CUT, R_FACE)]
 const CORNER_HOME = 0
 const EDGE_HOME = 2
-// The equator's two pieces meet at the real slash boundaries (15°/195°), not
-// the face centres — otherwise the cut runs through the middle of a top/bottom
-// edge piece and can't actually slash. Splitting there also makes each piece's
-// visible span on a face unequal (60° vs 30°), matching a real Square-1.
-const EQ_EAST: V3[] = [polar(15, R_FACE), polar(45, R_CORN), polar(135, R_CORN), polar(195, R_FACE)]
-const EQ_WEST: V3[] = [polar(195, R_FACE), polar(225, R_CORN), polar(315, R_CORN), polar(375, R_FACE)]
+// The equator's two pieces meet at the cut, so each shows unequal spans on
+// the faces it crosses (60° vs 30°), as on a real Square-1.
+const EQ_EAST: V3[] = [polar(CUT, R_FACE), polar(45, R_CORN), polar(135, R_CORN), polar(180 + CUT, R_FACE)]
+const EQ_WEST: V3[] = [polar(180 + CUT, R_FACE), polar(225, R_CORN), polar(315, R_CORN), polar(360 + CUT, R_FACE)]
 
 const rad = (d: number) => (d * Math.PI) / 180
-function rotZ(p: V3, d: number): V3 {
+function rotZ(p: V3, d: number): V3 {   // twist: clockwise seen from above
   const c = Math.cos(rad(d)), s = Math.sin(rad(d))
   return [p[0] * c + p[1] * s, -p[0] * s + p[1] * c, p[2]]
 }
-function rotY(p: V3, d: number): V3 {   // about the vertical-plane north-south axis
+// the slash axis: horizontal, perpendicular to the cut
+const AXIS = polar(CUT + 90, 1)
+function rotSlash(p: V3, d: number): V3 {   // Rodrigues about AXIS
   const c = Math.cos(rad(d)), s = Math.sin(rad(d))
-  return [p[0] * c + p[2] * s, p[1], -p[0] * s + p[2] * c]
+  const [kx, ky, kz] = AXIS
+  const dot = kx * p[0] + ky * p[1] + kz * p[2]
+  return [
+    p[0] * c + (ky * p[2] - kz * p[1]) * s + kx * dot * (1 - c),
+    p[1] * c + (kz * p[0] - kx * p[2]) * s + ky * dot * (1 - c),
+    p[2] * c + (kx * p[1] - ky * p[0]) * s + kz * dot * (1 - c),
+  ]
 }
-function rotX(p: V3, d: number): V3 {   // about the horizontal east-west axis
-  const c = Math.cos(rad(d)), s = Math.sin(rad(d))
-  return [p[0], p[1] * c - p[2] * s, p[1] * s + p[2] * c]
-}
-const flipToBottom = (p: V3): V3 => rotY(p, 180)   // (x,y,z) → (-x,y,-z)
 
 function zoneColor(x: number, y: number): string {
   const a = (Math.atan2(x, y) * 180 / Math.PI + 360) % 360
@@ -63,26 +70,26 @@ function zoneColor(x: number, y: number): string {
   return 'var(--face-B)'
 }
 
-// One prism per wedge. Built in "top style" (rotated to its slot, extruded
-// z = Z_CUT..1); a bottom-layer wedge is that rotated 180° about Y. The slash
-// is then a rigid 180° rotation about the horizontal east-west (X) axis, which
-// preserves each piece's x — so the moving half sweeps within its own slab and
-// clears the stationary half instead of cutting through it. `role`: 'cap' is
-// the outward sticker cap; a number i is the side quad from vertex i to i+1.
+// One prism per wedge, built top-style (rotated to its slot, extruded
+// z = Z_CUT..1). A bottom wedge at slot s is the top-style wedge at slot
+// s + 6 carried through a slash — which also turns its twist into the
+// bottom's (clockwise seen from below). `role`: 'cap' is the outward
+// sticker cap; a number i is the side quad from vertex i to i+1.
 function wedgePrism(cell: number, slot: number, layer: 0 | 1, twistDeg: number,
                     slashDeg: number): { pts: V3[]; role: 'cap' | number }[] {
   const corner = CORNER_FIRST.has(cell)
   const poly = corner ? CORNER_POLY : EDGE_POLY
   const home = corner ? CORNER_HOME : EDGE_HOME
-  const base = poly.map(p => rotZ(p, 30 * (slot - home) + twistDeg))
+  const topSlot = layer === 0 ? slot : slot + 6
+  const base = poly.map(p => rotZ(p, 30 * (topSlot - home) + twistDeg))
   let lo = base.map(p => [p[0], p[1], Z_CUT] as V3)
   let hi = base.map(p => [p[0], p[1], 1] as V3)
-  if (layer === 1) { lo = lo.map(flipToBottom); hi = hi.map(flipToBottom) }
-  if (slashDeg) { lo = lo.map(p => rotX(p, slashDeg)); hi = hi.map(p => rotX(p, slashDeg)) }
+  if (layer === 1) { lo = lo.map(p => rotSlash(p, 180)); hi = hi.map(p => rotSlash(p, 180)) }
+  if (slashDeg) { lo = lo.map(p => rotSlash(p, slashDeg)); hi = hi.map(p => rotSlash(p, slashDeg)) }
   const out: { pts: V3[]; role: 'cap' | number }[] = [{ pts: [...hi].reverse(), role: 'cap' }]
   for (let i = 0; i < base.length; i++) {
     const j = (i + 1) % base.length
-    out.push({ pts: [lo[i], lo[j], hi[j], hi[i]], role: i })
+    out.push({ pts: [lo[j], lo[i], hi[i], hi[j]], role: i })
   }
   return out
 }
@@ -106,18 +113,18 @@ for (let cell = 0; cell < 24; cell++) {
   SIDE_COLOR.set(cell, sides)
 }
 
-// Equator half as a prism; only its outer arc walls carry stickers. It flips
-// about the same X axis as the slash.
+// Equator half as a prism; only its outer walls carry stickers. The west
+// half flips about the slash axis.
 function eqPrism(poly: V3[], eqDeg: number): { pts: V3[]; color: string }[] {
-  const lo = poly.map(p => rotX([p[0], p[1], -Z_CUT], eqDeg))
-  const hi = poly.map(p => rotX([p[0], p[1], Z_CUT], eqDeg))
+  const lo = poly.map(p => rotSlash([p[0], p[1], -Z_CUT], eqDeg))
+  const hi = poly.map(p => rotSlash([p[0], p[1], Z_CUT], eqDeg))
   const out: { pts: V3[]; color: string }[] = []
   for (let i = 0; i < poly.length; i++) {
     const j = (i + 1) % poly.length
     // the diameter wall (last, along the cut) is internal → plastic
     const color = i === poly.length - 1 ? PLASTIC
       : zoneColor((poly[i][0] + poly[j][0]) / 2, (poly[i][1] + poly[j][1]) / 2)
-    out.push({ pts: [lo[i], lo[j], hi[j], hi[i]], color })
+    out.push({ pts: [lo[j], lo[i], hi[i], hi[j]], color })
   }
   return out
 }
@@ -154,9 +161,10 @@ interface Props {
   setup: string
   alg: string
   height?: number
+  controls?: boolean   // false: just the cube (still preview)
 }
 
-export function Sq1View3D({ setup, alg, height = 260 }: Props) {
+export function Sq1View3D({ setup, alg, height = 260, controls = true }: Props) {
   const [, force] = useReducer((x: number) => x + 1, 0)
   const sim = useRef({
     w: SOLVED,
@@ -214,8 +222,7 @@ export function Sq1View3D({ setup, alg, height = 260 }: Props) {
       st.raf = requestAnimationFrame(tick)
     }
     s.raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(sim.current.raf)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => cancelAnimationFrame(s.raf)
   }, [setup, alg])
 
   const s = sim.current
@@ -252,7 +259,8 @@ export function Sq1View3D({ setup, alg, height = 260 }: Props) {
     return {
       x: CX + SC * x1,
       y: CYc - SC * (p[2] * ce + y1 * se),
-      d: y1 * ce - p[2] * se,
+      // toward the viewer: screen-right × screen-up = (-sa·ce, -ca·ce, se)
+      d: p[2] * se - y1 * ce,
     }
   }
 
@@ -299,7 +307,7 @@ export function Sq1View3D({ setup, alg, height = 260 }: Props) {
     <div className="w-full flex flex-col items-center gap-1">
       <svg
         viewBox="0 0 320 244"
-        style={{ width: '100%', maxWidth: 360, height: height - 40, touchAction: 'none', cursor: 'grab' }}
+        style={{ width: '100%', maxWidth: 360, height: controls ? height - 40 : height, touchAction: 'none', cursor: 'grab' }}
         onPointerDown={e => {
           sim.current.drag = { x: e.clientX, y: e.clientY }
           e.currentTarget.setPointerCapture(e.pointerId)
@@ -322,7 +330,7 @@ export function Sq1View3D({ setup, alg, height = 260 }: Props) {
         ))}
       </svg>
 
-      <div className="flex items-center gap-3">
+      {controls && <div className="flex items-center gap-3">
         <button
           onClick={() => {
             const st = sim.current
@@ -366,7 +374,7 @@ export function Sq1View3D({ setup, alg, height = 260 }: Props) {
           {tok ? ` · ${sq1TokenLabel(tok)}` : s.tokens.length ? ' · done' : ''}
         </span>
         <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>drag to orbit</span>
-      </div>
+      </div>}
     </div>
   )
 }
