@@ -5,6 +5,7 @@ import { useCubiqStore } from '@/store'
 import { LessonNav } from './LessonShell'
 import { CrossLesson } from './cross/CrossLesson'
 import { XcrossLesson } from './xcross/XcrossLesson'
+import { Sq1Lesson } from './sq1/Sq1Lesson'
 import { LESSON_BY_ID, TRACKS } from '@/lib/lessons/catalog'
 
 const REMEMBER = 'cubiq:lesson'
@@ -49,6 +50,7 @@ export function LessonsHub() {
       </aside>
       {lesson.track === 'cross' && <CrossLesson key={lesson.id} lesson={lesson} />}
       {lesson.track === 'xcross' && <XcrossLesson key={lesson.id} lesson={lesson} />}
+      {lesson.track === 'sq1' && <Sq1Lesson key={lesson.id} lesson={lesson} />}
     </div>
   )
 }

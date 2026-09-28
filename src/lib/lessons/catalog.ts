@@ -21,6 +21,7 @@ export interface Lesson {
   kind: string          // which drill component runs it
   levels?: LessonLevel[]
   watchOnly?: number    // lessons you pass by viewing N examples
+  trainer?: boolean     // a spaced-repetition case trainer keeps its own progress
 }
 
 export interface Track {
@@ -171,6 +172,54 @@ const XCROSS: Lesson[] = [
   },
 ]
 
+const SQ1: Lesson[] = [
+  {
+    id: 'sq1-read', track: 'sq1', title: 'Read a layer',
+    goal: 'Count corners and edges on each layer at a glance.',
+    see: [
+      'Each layer has 12 slots of 30°. A corner is a wide piece and fills 2 slots; an edge is a thin piece and fills 1.',
+      'A layer holds 2 to 6 corners; the edges fill the rest (2 corners with 8 edges, up to 6 corners with none).',
+      'The two layers share 8 corners: 6 on top means 2 below. Name the split: 6/2, 5/3 or 4/4.',
+      'Two shapes are worth knowing by name: the square (4 corners and 4 edges, alternating), which is cube shape, and the star (6 corners, no edges).',
+    ],
+    drill: 'How many corners are on the top layer?',
+    kind: 'sq1-read',
+  },
+  {
+    id: 'sq1-slash', track: 'sq1', title: 'Where a slash can go',
+    goal: 'Line up a layer so the slash can go through.',
+    see: [
+      'The slash cuts straight through the middle, along the line between the two halves.',
+      'It only goes through when that line passes between pieces on both layers: no corner may sit across it.',
+      'Look at both ends of the line. A corner straddling either end needs the layer turned until both ends fall on a gap.',
+    ],
+    drill: 'The bottom is lined up. Which top turn lets the slash through?',
+    kind: 'sq1-slash',
+  },
+  {
+    id: 'sq1-balance', track: 'sq1', title: 'Balance the corners',
+    goal: 'Get from any split to 4 corners on each layer in one slash.',
+    see: [
+      'A slash swaps the right half of the top with the right half of the bottom.',
+      'Count the corners in each half you are about to swap. Send down the half with more corners, bring up the half with fewer.',
+      'Every shape is at most one slash from a 4/4 split, so there is always a twist that balances it in one go.',
+    ],
+    drill: 'From a 6/2 or 5/3 split, pick the twist whose slash gives 4 corners on each layer.',
+    kind: 'sq1-balance',
+  },
+  {
+    id: 'sq1-cube', track: 'sq1', title: 'From 4/4 to cube shape',
+    goal: 'Recognise each 4/4 case and recall its route to cube shape.',
+    see: [
+      'With 4 corners on each layer, all that differs is where the edges sit between the corners.',
+      'Read each layer by its gaps: how many edges sit between each pair of corners, going round. The square is 1·1·1·1.',
+      'Each pair of gap patterns has a fixed route to square/square, 1 to 7 slashes long. Learn them like OLL cases.',
+    ],
+    drill: 'A case trainer: recognise the pair of shapes, recall the route, then grade yourself.',
+    kind: 'sq1-cases', trainer: true,
+  },
+]
+
 export const TRACKS: Track[] = [
   {
     id: 'cross', title: 'Cross', colour: 'var(--st-U)',
@@ -184,6 +233,11 @@ export const TRACKS: Track[] = [
     hold: 'Hold white on the bottom and green in front, then scramble.',
     after: 'Best after Cross lesson 6, level 2',
     lessons: XCROSS,
+  },
+  {
+    id: 'sq1', title: 'Square-1 cube shape', colour: 'var(--st-L)',
+    blurb: 'Read the layer shapes and pick each slash, until the puzzle is a cube again.',
+    lessons: SQ1,
   },
 ]
 

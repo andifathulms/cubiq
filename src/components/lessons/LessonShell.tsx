@@ -10,7 +10,7 @@ export function lessonStatus(l: Lesson, p: LessonProgress | undefined): string {
   if (!p) return 'Not started'
   if (l.levels && l.levels.length > 1) return `Level ${p.level + 1} of ${l.levels.length}`
   const { hits } = standing(p)
-  return l.watchOnly ? 'Started' : `${hits} of ${PASS_HITS} hits`
+  return l.watchOnly || l.trainer ? 'Started' : `${hits} of ${PASS_HITS} hits`
 }
 
 /** Track and lesson list; the open lesson is highlighted. */
@@ -72,7 +72,7 @@ export function ProgressStrip({ lesson }: { lesson: Lesson }) {
           <span className="text-ink-2">{level?.label}</span>
         </span>
       )}
-      {!lesson.watchOnly && (
+      {!lesson.watchOnly && !lesson.trainer && (
         <span className="flex items-center gap-2" aria-label={`${hits} hits in the last ${results.length} tries`}>
           <span className="flex gap-1">
             {Array.from({ length: WINDOW }, (_, i) => {
@@ -142,7 +142,7 @@ export function LessonLayout({ track, lesson, example, drill }: {
           <span className="label">Drill</span>
           <p className="text-[14px] text-ink-2">{lesson.drill}</p>
         </div>
-        <ProgressStrip lesson={lesson} />
+        {!lesson.trainer && <ProgressStrip lesson={lesson} />}
         {drill}
       </section>
     </article>

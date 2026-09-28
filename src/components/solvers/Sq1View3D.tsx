@@ -190,6 +190,7 @@ export function Sq1View3D({ setup, alg, height = 260, controls = true }: Props) 
     s.t = 0
     s.playing = true
     s.last = 0
+    force()   // show the setup at once, even with nothing to play
 
     const tick = (ts: number) => {
       const st = sim.current
