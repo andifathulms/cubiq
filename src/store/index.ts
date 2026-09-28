@@ -6,6 +6,7 @@ import { generateScramble } from '@/lib/cubing'
 import { pushScrambleHistory } from '@/lib/storage'
 import type { Session, Solve, Settings, TimerState, SessionStats } from '@/types'
 import { schedule, type CardState, type Grade } from '@/lib/learn'
+import { applyResult, type LessonProgress } from '@/lib/lessons/progress'
 
 const DEFAULT_SETTINGS: Settings = {
   inspection_enabled: false,
@@ -41,6 +42,8 @@ interface CubiqStore {
   training: Record<string, CardState>
   /** Learn: cross-planning self-grades */
   crossStats: { optimal: number; close: number; missed: number }
+  /** Learn › Lessons: drill results and level per lesson id */
+  lessons: Record<string, LessonProgress>
 
   getActiveSession: () => Session | undefined
   getStats: () => SessionStats
@@ -68,6 +71,11 @@ interface CubiqStore {
   gradeCase: (key: string, grade: Grade, timing: { recogMs?: number; execMs?: number }) => void
   resetTraining: (keyPrefix: string) => void
   recordCross: (result: 'optimal' | 'close' | 'missed') => void
+  /** A drill try; `levels` = how many levels the lesson has */
+  recordLesson: (id: string, hit: boolean, levels?: number) => void
+  /** Pass a watch-only lesson */
+  completeLesson: (id: string) => void
+  resetLesson: (id: string) => void
 
   exportData: () => void
   importData: (json: string, mode: 'merge' | 'replace') => void
@@ -87,6 +95,7 @@ export const useCubiqStore = create<CubiqStore>()(
       currentScramble: '',
       training: {},
       crossStats: { optimal: 0, close: 0, missed: 0 },
+      lessons: {},
 
       getActiveSession: () => {
         const { sessions, activeSessionId } = get()
@@ -222,6 +231,15 @@ export const useCubiqStore = create<CubiqStore>()(
       recordCross: result =>
         set(state => ({ crossStats: { ...state.crossStats, [result]: state.crossStats[result] + 1 } })),
 
+      recordLesson: (id, hit, levels = 1) =>
+        set(state => ({ lessons: { ...state.lessons, [id]: applyResult(state.lessons[id], hit, levels) } })),
+
+      completeLesson: id =>
+        set(state => ({ lessons: { ...state.lessons, [id]: { ...(state.lessons[id] ?? { results: [], level: 0 }), passed: true } } })),
+
+      resetLesson: id =>
+        set(state => ({ lessons: Object.fromEntries(Object.entries(state.lessons).filter(([k]) => k !== id)) })),
+
       exportData: () => {
         exportToJSON(get().sessions)
       },
@@ -245,6 +263,7 @@ export const useCubiqStore = create<CubiqStore>()(
         settings: state.settings,
         training: state.training,
         crossStats: state.crossStats,
+        lessons: state.lessons,
       }),
       // Settings gain fields over time: fill in defaults for anything an
       // older saved state doesn't have (the default merge is shallow).
