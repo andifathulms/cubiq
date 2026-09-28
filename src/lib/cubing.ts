@@ -118,10 +118,12 @@ function generateMinx(): string {
 // Square-1 legal scrambles need a shape simulator: corners span two wedge
 // slots, and a slash is only legal when no corner straddles a cut boundary.
 // Types per slot: 0 = corner-first (partner sits in the next slot),
-// 1 = corner-second, 2 = edge. Mirrors cubiq-ml/solversq1.py exactly.
+// 1 = corner-second, 2 = edge.
 function generateSq1(): string {
+  // WCA solved: top reads corner-first from the cut, bottom edge-first
   let t: number[] = []
-  for (let i = 0; i < 8; i++) t.push(0, 1, 2)
+  for (let i = 0; i < 4; i++) t.push(0, 1, 2)
+  for (let i = 0; i < 4; i++) t.push(2, 0, 1)
 
   const rot = (arr: number[], off: number, u: number) =>
     Array.from({ length: 12 }, (_, i) => arr[off + ((i - u + 24) % 12)])

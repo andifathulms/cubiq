@@ -1,17 +1,18 @@
-// Square-1 wedge model shared by the 2D and 3D animated views.
-// Mirrors cubiq-ml/solversq1.py exactly (verified cell-for-cell): 24
-// tracked wedges, slots 0-11 top / 12-23 bottom, twists rotate layers,
-// the slash swaps slots 6-11 with 12-17 and toggles the equator.
+// Square-1 wedge model shared by the 2D and 3D animated views: 24 tracked
+// wedges, slots 0-11 top / 12-23 bottom, twists rotate layers, the slash
+// swaps slots 6-11 with 12-17 and toggles the equator (the same slot
+// semantics as cubing.js's square1 kpuzzle).
 //
-// Geometry convention: 0° = north (up), angles grow clockwise. Top slot i
-// and bottom slot 12+i both span [30i, 30i+30), so the solved state reads
-// as an aligned cube and a slash carries each wedge onto exactly the slot
-// the engine assigns it.
+// Solved is the WCA solved state: a cube you can slash straight away. The
+// top reads corner-first from the cut, the bottom edge-first, because the
+// cut runs 15° off the face centres and a slash mirrors the moving half
+// across it. (The solver engine's tables use a solved state with the bottom
+// one notch off; src/lib/solvers/sq1.ts converts at its boundary.)
 
 export type Sq1Token = { kind: 'twist'; u: number; d: number } | { kind: 'slash' }
 
-export const CORNER_FIRST = new Set([0, 3, 6, 9, 12, 15, 18, 21])
-export const EDGES = new Set([2, 5, 8, 11, 14, 17, 20, 23])
+export const CORNER_FIRST = new Set([0, 3, 6, 9, 13, 16, 19, 22])
+export const EDGES = new Set([2, 5, 8, 11, 12, 15, 18, 21])
 export const SOLVED = Array.from({ length: 24 }, (_, i) => i)
 
 export function norm(x: number): number {
@@ -48,12 +49,18 @@ export function applySq1Token(w: number[], t: Sq1Token): number[] {
   return nw
 }
 
-// side-sticker color by the cell's home direction (both layers share zones)
+// Side-sticker colour by the cell's home direction, as an angle seen from
+// above (0° = back, clockwise). Top slot i is centred at 30i + 30°; bottom
+// slot i is the slash image of top slot i + 6, centred at -30i°.
+export function sq1HomeAngle(cell: number): number {
+  return cell < 12 ? 30 * cell + 30 : ((-30 * (cell - 12)) % 360 + 360) % 360
+}
+
 export function sq1SideColor(cell: number): string {
-  const a = (30 * (cell % 12) + 15) % 360
-  if (a >= 30 && a < 120) return 'var(--face-R)'
-  if (a >= 120 && a < 210) return 'var(--face-F)'
-  if (a >= 210 && a < 300) return 'var(--face-L)'
+  const a = sq1HomeAngle(cell) % 360
+  if (a >= 45 && a < 135) return 'var(--face-R)'
+  if (a >= 135 && a < 225) return 'var(--face-F)'
+  if (a >= 225 && a < 315) return 'var(--face-L)'
   return 'var(--face-B)'
 }
 

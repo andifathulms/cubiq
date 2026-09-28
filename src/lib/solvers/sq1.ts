@@ -253,11 +253,33 @@ function solvePieces(w: W, eq: number, maxAttempts = 25): Token[] | null {
   return null
 }
 
+// Peephole: the generator macros are joined end to end, so adjacent twists
+// merge, (0,0) drops and "/ /" cancels (it returns the same state, so no
+// slash legality changes).
+function simplify(tokens: readonly Token[]): Token[] {
+  const out: Token[] = []
+  for (const t of tokens) {
+    const prev = out.at(-1)
+    if (t[0] === 'slash' && prev?.[0] === 'slash') out.pop()
+    else if (t[0] === 'twist' && prev?.[0] === 'twist') out[out.length - 1] = ['twist', prev[1] + t[1], prev[2] + t[2]]
+    else out.push(t)
+    const top = out.at(-1)
+    if (top?.[0] === 'twist' && mod12(top[1]) === 0 && mod12(top[2]) === 0) out.pop()
+  }
+  return out
+}
+
 // ── Full solve ────────────────────────────────────────────────────────────────
+
+// The engine's solved state (and cubiq-ml's, which its tables come from) has
+// the bottom layer one notch off the WCA solved state: WCA solved is
+// twist(SOLVED, 0, 1). Scrambles are read from WCA solved, and the solution
+// ends with the (0, 1) that brings the engine's solved state back to it.
+const WCA_SOLVED = twist(SOLVED, 0, 1)
 
 export function solveSq1(scramble: string) {
   const t0 = performance.now()
-  let [w, eq] = applyTokens(SOLVED, 0, parseScramble(scramble))
+  let [w, eq] = applyTokens(WCA_SOLVED, 0, parseScramble(scramble))
 
   reportProgress('Finding the shortest route to cube shape')
   let shapeToks = solveShape(w)
@@ -276,16 +298,21 @@ export function solveSq1(scramble: string) {
     }
   }
   const stages: { name: string; kind: string; moves: string[]; move_count?: number }[] = [
-    { name: 'cube shape', kind: 'shape', moves: shapeToks.map(tokenStr) },
+    { name: 'cube shape', kind: 'shape', moves: simplify(shapeToks).map(tokenStr) },
   ]
 
   reportProgress('Solving the pieces')
   const pieceToks = solvePieces(w, eq)
   if (!pieceToks) throw new Error('square-1 pieces stage failed')
-  ;[w, eq] = applyTokens(w, eq, pieceToks)
-  stages.push({ name: 'pieces', kind: 'pieces', moves: pieceToks.map(tokenStr) })
+  const last = pieceToks.at(-1)
+  if (last?.[0] !== 'twist') pieceToks.push(['twist', 0, 1])
+  else if (mod12(last[1]) === 0 && mod12(last[2] + 1) === 0) pieceToks.pop()
+  else pieceToks[pieceToks.length - 1] = ['twist', last[1], last[2] + 1]
+  const pieceMoves = simplify(pieceToks)
+  ;[w, eq] = applyTokens(w, eq, pieceMoves)
+  stages.push({ name: 'pieces', kind: 'pieces', moves: pieceMoves.map(tokenStr) })
 
-  if (w.some((x, i) => x !== i) || eq !== 0) throw new Error('square-1 pipeline finished unsolved')
+  if (w.some((x, i) => x !== WCA_SOLVED[i]) || eq !== 0) throw new Error('square-1 pipeline finished unsolved')
 
   for (const st of stages) st.move_count = st.moves.filter(m => m === '/').length
   return {
