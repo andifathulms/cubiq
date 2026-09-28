@@ -12,13 +12,22 @@ See [PORTFOLIO_CONTEXT.md](PORTFOLIO_CONTEXT.md) for a detailed technical writeu
 
 ## Features
 
-- **Timer** — spacebar/tap-to-start with a 300ms hold-to-arm, optional WCA 15s inspection with audio alerts, `+2`/DNF penalty support, per-session puzzle type
-- **Stats** — ao5/ao12/ao50/ao100 with correct trim logic, PB detection, time trend chart, distribution histogram, daily heatmap, cross-session comparison
-- **History** — full searchable/filterable solve log with export/import (JSON)
-- **3D scramble & solution preview** — `cubing.js` `TwistyPlayer` per puzzle, orbit control, step-through playback with speed control
-- **Solvers** — one workspace, one tab per puzzle:
+Four sections, each answering one question, in a "Stackmat" design: graphite (dark) and scorecard (light) themes that follow your system, state colours like a competition timer (red holding, green ready, gold for records), and WCA sticker colours used as data.
+
+- **Practice** — *what's my next solve?* Stackmat-style timing (hold until green, release to start, any key or tap stops), WCA inspection with automatic +2/DNF and optional spoken 8 s/12 s calls, scrambles as face-coloured move chips grouped for reading, a Net/3D cube preview, OK/+2/DNF right under the result, PB celebration, a stats strip (PB, ao5 with its change, ao12, ao100, today, last five), sessions per puzzle, and keyboard shortcuts (`?`)
+- **Progress** — *am I getting faster?* Records for 7 days / 30 days / all time with their change against the previous period, practice streak, a trend chart (singles, rolling ao12, PB staircase), distribution, 12-week consistency heatmap, all sessions compared, and the full solve log (filters, search, notes, penalties, open in Solve Lab, JSON import/export)
+- **Solve Lab** — *how should this scramble be solved?* Every solver runs in your browser (Web Worker) and shows its solution stage by stage — a move bar per stage, stage rows that play just that stage, and a 3D player:
   | Puzzle | Method |
   |---|---|
+  | 3x3 | Staged CFOP (cross / x-cross / F2L / OLL / PLL) with move cancellation; optimal cross and x-cross for every colour; Kociemba two-phase (min2phase) |
+  | 2x2, Pyraminx, Skewb | Fully precomputed God's-algorithm tables — provably optimal, ≤ 11 moves |
+  | 4x4, 5x5 | Reduction pipeline: centers → edge/wing pairing → parity → 3x3 CFOP finish |
+  | Megaminx | Layer-by-layer placement with a commutator last-layer macro library |
+  | Square-1 | Two-phase shape BFS + exact piece descent, with a custom solid-shell 3D animation |
+- **Learn** — *what should I drill?* A spaced-repetition trainer for the 21 PLL and 57 OLL cases (diagrams generated from the solver's algorithms; recognition and execution timing; mastery grid) and a cross-planning drill against the optimal cross
+- **Research (Settings › Labs; needs `cubiq-ml` running locally)** — trigger self-play RL training (Autodidactic Iteration) from the browser, watch live loss/solve-rate charts, inspect the policy distribution for a scramble, and compare a greedy/MCTS solve against Kociemba optimal
+
+---|---|
   | 3x3 | Staged CFOP (cross / x-cross / F2L / OLL / PLL) with move-cancelling stitching, plus a Kociemba two-phase (min2phase) comparison |
   | 2x2, Pyraminx, Skewb | Fully precomputed God's-algorithm tables — provably optimal, ≤ 11 moves |
   | 4x4, 5x5 | Reduction pipeline: centers → edge/wing pairing → parity → 3x3 CFOP finish |
@@ -30,7 +39,7 @@ See [PORTFOLIO_CONTEXT.md](PORTFOLIO_CONTEXT.md) for a detailed technical writeu
 
 ## Stack
 
-**Frontend** — Next.js 16 (App Router, static export), React 19, TypeScript, Tailwind CSS 4, Zustand (persisted), `cubing.js`, Recharts, Framer Motion
+**Frontend** — Next.js 16 (App Router, static export), React 19, TypeScript, Tailwind CSS 4, Zustand (persisted), `cubing.js`; fonts Bricolage Grotesque, Geist and Martian Mono; charts as hand-built SVG
 
 **Solvers** — `src/lib/solvers/`: TypeScript ports of every `cubiq-ml` solver, run in a Web Worker with distance tables built on first use (symmetry-reduced where possible, e.g. the F2L tables); the 3x3 two-phase search is min2phase, vendored from `cubing.js`
 
@@ -70,8 +79,8 @@ Pushing to `main` runs `.github/workflows/deploy-pages.yml`: a static export (`o
 
 ```
 src/
-├── app/            # Next.js routes: / (timer), /stats, /history, /solvers
-├── components/      # UI, grouped by feature (timer, scramble, stats, history, solvers, session)
+├── app/            # Next.js routes: / (practice), /progress, /lab, /learn, /research
+├── components/      # UI, grouped by feature (practice, progress, lab, learn, session, layout, ui)
 ├── store/            # Zustand store (persisted to localStorage)
 ├── lib/              # Business logic: stats calculations, cubing.js wrapper, export/import
 │   └── solvers/      # In-browser solver ports + Web Worker (tables built on first use)

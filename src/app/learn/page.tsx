@@ -39,7 +39,7 @@ export default function LearnPage() {
         <PageHeader eyebrow="Learn" title="What should I drill?">
           <div className="seg" role="tablist" aria-label="Drill">
             {TABS.map(t => (
-              <button key={t.id} role="tab" type="button" aria-selected={tab === t.id} aria-pressed={tab === t.id} onClick={() => choose(t.id)}>{t.label}</button>
+              <button key={t.id} role="tab" type="button" aria-selected={tab === t.id} onClick={() => choose(t.id)}>{t.label}</button>
             ))}
           </div>
         </PageHeader>

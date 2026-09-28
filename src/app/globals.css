@@ -305,7 +305,8 @@ h1, h2, h3 { text-wrap: balance; }
   transition: background 0.15s ease, color 0.15s ease;
 }
 .seg > button:hover { color: var(--ink); }
-.seg > button[aria-pressed="true"] {
+.seg > button[aria-pressed="true"],
+.seg > button[aria-selected="true"] {
   background: var(--surface);
   color: var(--ink);
   box-shadow: var(--shadow-sm);
