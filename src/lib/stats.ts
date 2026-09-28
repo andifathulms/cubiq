@@ -51,3 +51,10 @@ export function computeStats(solves: Solve[]): SessionStats {
     ao100: calcAo(solves, 100),
   }
 }
+
+/** Display value for a stat: '—' when there isn't enough data yet (so an
+ *  empty session never shows "DNF"), 'DNF' only for a real DNF average. */
+export function formatStat(ms: number | null, solveCount: number, needed = 1): string {
+  if (solveCount < needed) return '—'
+  return formatTime(ms === null ? null : Math.round(ms))
+}

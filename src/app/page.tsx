@@ -3,9 +3,8 @@ import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { Eye, EyeOff, Wand2 } from 'lucide-react'
-import { Navbar } from '@/components/layout/Navbar'
-import { Sidebar } from '@/components/layout/Sidebar'
-import { MobileNav } from '@/components/layout/MobileNav'
+import { AppShell } from '@/components/layout/AppShell'
+import { SessionSelector } from '@/components/session/SessionSelector'
 import { TimerDisplay } from '@/components/timer/TimerDisplay'
 import { TimerControls } from '@/components/timer/TimerControls'
 import { InspectionTimer } from '@/components/timer/InspectionTimer'
@@ -85,12 +84,11 @@ export default function TimerPage() {
   const hideScramble = timerState === 'running'
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
-      <Navbar />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-
-        <main className="flex-1 flex flex-col overflow-y-auto pb-16 md:pb-0 relative">
+    <AppShell>
+        <div className="flex flex-col min-h-full relative">
+          <div className="flex items-center justify-between px-4 md:px-8 pt-4 md:pt-6">
+            <SessionSelector />
+          </div>
           {/* Scramble area */}
           <div
             className="flex flex-col items-center gap-1 pt-6 px-4 transition-opacity duration-200"
@@ -102,7 +100,7 @@ export default function TimerPage() {
             </div>
             {currentScramble && SOLVER_PUZZLES.has(activePuzzle) && (
               <Link
-                href={`/solvers?puzzle=${activePuzzle}&scramble=${encodeURIComponent(currentScramble)}`}
+                href={`/lab?puzzle=${activePuzzle}&scramble=${encodeURIComponent(currentScramble)}`}
                 className="flex items-center gap-1 text-xs font-medium transition-colors"
                 style={{ color: 'var(--text-muted)' }}
                 onMouseEnter={e => (e.currentTarget.style.color = 'var(--accent-primary)')}
@@ -167,10 +165,7 @@ export default function TimerPage() {
               )}
             </div>
           )}
-        </main>
-      </div>
-
-      <MobileNav />
-    </div>
+        </div>
+    </AppShell>
   )
 }

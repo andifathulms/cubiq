@@ -7,7 +7,6 @@ import { Cube555SolverCard } from '@/components/solvers/Cube555SolverCard'
 import { MegaminxSolverCard } from '@/components/solvers/MegaminxSolverCard'
 import { Sq1SolverCard } from '@/components/solvers/Sq1SolverCard'
 import { OptimalSolverCard } from '@/components/solvers/OptimalSolverCard'
-import { MDPPanel } from '@/components/solvers/MDPPanel'
 import { ScramblePanel } from '@/components/solvers/ScramblePanel'
 import { TWISTY_PUZZLE_IDS } from '@/lib/cubing'
 
@@ -38,7 +37,6 @@ const TABS: Tab[] = [
   { id: 'skewb', label: 'Skewb', glyph: '◈', blurb: 'All 3.1M positions precomputed — provably optimal, ≤ 11 moves.' },
   { id: 'minx', label: 'Megaminx', glyph: '⬠', blurb: 'Layer-by-layer greedy placement with commutator last-layer macros.' },
   { id: 'sq1', label: 'Square-1', glyph: '◗', blurb: 'Optimal shape stage, then exact two-phase piece descent.' },
-  { id: 'research', label: 'Research', glyph: '🧪', blurb: 'Experimental MDP / reinforcement-learning solver. Training + evaluation.' },
 ]
 
 export function SolverWorkspace() {
@@ -81,7 +79,6 @@ export function SolverWorkspace() {
       <div className="flex flex-wrap gap-2">
         {TABS.map(t => {
           const on = t.id === tab
-          const research = t.id === 'research'
           return (
             <button
               key={t.id}
@@ -89,7 +86,7 @@ export function SolverWorkspace() {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all shrink-0"
               style={{
                 background: on ? 'var(--gradient-accent-soft)' : 'var(--bg-glass)',
-                color: on ? 'var(--accent-primary)' : research ? 'var(--text-muted)' : 'var(--text-secondary)',
+                color: on ? 'var(--accent-primary)' : 'var(--text-secondary)',
                 border: `1px solid ${on ? 'var(--border-accent)' : 'var(--border)'}`,
                 boxShadow: on ? '0 0 20px -8px rgba(110,231,247,0.4)' : 'none',
               }}
@@ -112,17 +109,8 @@ export function SolverWorkspace() {
         </div>
       </div>
 
-      {/* Research is a full-width standalone panel — no scramble/cube pairing */}
-      {tab === 'research' ? (
-        <div className="flex flex-col gap-6">
-          <p className="text-xs px-3 py-2 rounded-xl" style={{ background: 'var(--bg-elevated)', color: 'var(--text-muted)' }}>
-            Experimental — a from-scratch MDP/RL solver. Not a practical solver yet; this panel trains and evaluates the model, and needs the Python cubiq-ml service running locally.
-          </p>
-          <MDPPanel />
-        </div>
-      ) : (
-        /* Every puzzle: sticky scramble + 3D cube on the left, solver(s) on the right */
-        <div className="grid gap-6 items-start lg:grid-cols-[minmax(300px,360px)_1fr]">
+      {/* Every puzzle: sticky scramble + 3D cube on the left, solver(s) on the right */}
+      <div className="grid gap-6 items-start lg:grid-cols-[minmax(300px,360px)_1fr]">
           <div className="lg:sticky lg:top-4">
             <ScramblePanel puzzle={tab} twistyId={twistyId} scramble={scr} onScramble={s => setScr(tab, s)} />
           </div>
@@ -166,7 +154,6 @@ export function SolverWorkspace() {
             {tab === 'sq1' && <Sq1SolverCard scramble={scr} />}
           </div>
         </div>
-      )}
     </div>
   )
 }

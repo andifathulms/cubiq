@@ -27,6 +27,9 @@ export interface Settings {
   voice_alerts: boolean
   cube_preview_visible: boolean
   ml_service_url: string
+  theme: 'system' | 'light' | 'dark'
+  scramble_size: 'sm' | 'md' | 'lg'
+  cube_dock: 'net' | '3d' | 'hidden'
 }
 
 export type TimerState = 'idle' | 'ready' | 'inspection' | 'running' | 'stopped'

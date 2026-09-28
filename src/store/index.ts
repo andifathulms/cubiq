@@ -11,6 +11,9 @@ const DEFAULT_SETTINGS: Settings = {
   voice_alerts: false,
   cube_preview_visible: true,
   ml_service_url: process.env.NEXT_PUBLIC_ML_SERVICE_URL ?? 'http://127.0.0.1:8001',
+  theme: 'system',
+  scramble_size: 'md',
+  cube_dock: 'net',
 }
 
 function makeDefaultSession(): Session {
@@ -186,6 +189,12 @@ export const useCubiqStore = create<CubiqStore>()(
         activeSessionId: state.activeSessionId,
         settings: state.settings,
       }),
+      // Settings gain fields over time: fill in defaults for anything an
+      // older saved state doesn't have (the default merge is shallow).
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<CubiqStore>
+        return { ...current, ...p, settings: { ...current.settings, ...(p.settings ?? {}) } }
+      },
     }
   )
 )

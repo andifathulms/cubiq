@@ -7,9 +7,10 @@ interface ModalProps {
   onClose: () => void
   title: string
   children: React.ReactNode
+  wide?: boolean
 }
 
-export function Modal({ open, onClose, title, children }: ModalProps) {
+export function Modal({ open, onClose, title, children, wide }: ModalProps) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     if (open) window.addEventListener('keydown', onKey)
@@ -19,24 +20,16 @@ export function Modal({ open, onClose, title, children }: ModalProps) {
   if (!open) return null
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      onClick={onClose}
-    >
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={onClose} role="dialog" aria-modal="true" aria-label={title}>
+      <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" />
       <div
-        className="relative card p-6 w-full max-w-md mx-4 z-10 animate-fade-in"
-        style={{ background: 'var(--bg-elevated-solid)', boxShadow: 'var(--shadow-lg)' }}
+        className={`relative z-10 w-full ${wide ? 'sm:max-w-2xl' : 'sm:max-w-md'} max-h-[88dvh] overflow-y-auto bg-surface border border-line rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 sm:mx-4 animate-fade-in`}
+        style={{ boxShadow: 'var(--shadow-lg)' }}
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold font-display tracking-tight text-[var(--text-primary)]">
-            {title}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors"
-          >
+          <h2 className="font-display text-lg font-bold tracking-tight text-ink">{title}</h2>
+          <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg text-muted hover:text-ink hover:bg-raised transition-colors">
             <X size={18} />
           </button>
         </div>
