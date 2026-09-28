@@ -23,6 +23,7 @@ import {
 } from './cube555'
 import { solveCfop } from './cfop'
 import { solve3x3Facelet } from './twophase'
+import { reportProgress } from './progress'
 
 const SUFFIXES = ['', "'", '2']
 const OUTER_MOVES = FACES.flatMap(f => SUFFIXES.map(s => f + s))
@@ -984,18 +985,21 @@ export function solve555(scramble: string) {
   let state = fromScramble(CUBE5, scramble)
   const stages: Stage[] = []
 
+  reportProgress('Solving centres (x- and t-centres)')
   const centerStages = solveCenters(state)
   if (!centerStages) throw new Error('5x5 center solver failed')
   for (const st of centerStages) state = apply5(state, st.moves)
   stages.push(...centerStages)
   if (!centersSolved(state)) throw new Error('5x5 centers not solved (unexpected)')
 
+  reportProgress('Grouping edges')
   const pairingStages = solvePairing(state)
   if (!pairingStages) throw new Error('5x5 edge grouping failed')
   for (const st of pairingStages) state = apply5(state, st.moves)
   stages.push(...pairingStages)
   if (!centersSolved(state) || !allPaired(state)) throw new Error('5x5 reduction incomplete (unexpected)')
 
+  reportProgress('Solving the 3×3 stage')
   const moves3 = solve3x3Facelet(toFacelet3(state))
   if (!moves3) throw new Error('5x5 reduced state is not a legal 3x3 (unexpected)')
   const cfop = solveCfop(invertMoves(moves3).join(' '), 'D')

@@ -15,6 +15,7 @@ import {
   type MegaState,
 } from './megaengine'
 import { LLSolver } from './megall'
+import { reportProgress } from './progress'
 
 type Kind = 'edge' | 'corner'
 const FACE_OF: Record<string, string> = Object.fromEntries(FACE_MOVES.map(m => [m, m.replace(/['2]+$/, '')]))
@@ -194,6 +195,7 @@ function solvePlacement(state: MegaState): [Stage[], MegaState] | null {
   const solvedC: number[] = []
   const stages: Stage[] = []
   for (const [name, kind, pieces] of PLACEMENT_PLAN) {
+    reportProgress(`Placing the ${name}`)
     // D moves are useless once the D layer is done
     const moves = name === 'star' || name === 'bottom corners'
       ? FACE_MOVES : FACE_MOVES.filter(m => FACE_OF[m] !== 'D')
@@ -227,7 +229,9 @@ export function solveMega(scramble: string) {
   if (!placed) throw new Error('megaminx placement failed')
   let [stages, cur] = placed
 
+  if (!LL) reportProgress('Building last-layer macros')
   LL ??= new LLSolver()
+  reportProgress('Solving the last layer')
   const llStages = LL.solve(cur)
   if (!llStages) throw new Error('megaminx last layer not covered (unexpected)')
   for (const st of llStages) cur = applyMega(cur, st.moves)

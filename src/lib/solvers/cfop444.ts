@@ -18,6 +18,7 @@ import { OLL_PARITY, PLL_PARITY, solveCenters, solvePairing, type Stage } from '
 import { solveCfop, type CfopFace } from './cfop'
 import { solve3x3Facelet } from './twophase'
 import { fromScramble } from './cubeN'
+import { reportProgress } from './progress'
 
 const PARITY_COMBOS: [string, string[]][][] = [
   [],
@@ -32,6 +33,7 @@ export function solve444(scramble: string, cfopFace: CfopFace | 'best' = 'D', be
   const stages: Stage[] = []
 
   // ── Stage 1: centres ──
+  reportProgress('Solving centres')
   const centerStages = solveCenters(state)
   if (!centerStages) throw new Error('center solver failed')
   for (const st of centerStages) state = apply4(state, st.moves)
@@ -39,6 +41,7 @@ export function solve444(scramble: string, cfopFace: CfopFace | 'best' = 'D', be
   if (!centersSolved(state)) throw new Error('centers not solved (unexpected)')
 
   // ── Stage 2: edge pairing ──
+  reportProgress('Pairing edges')
   const pairingStages = solvePairing(state)
   if (!pairingStages) throw new Error('edge pairing failed')
   for (const st of pairingStages) state = apply4(state, st.moves)
@@ -46,6 +49,7 @@ export function solve444(scramble: string, cfopFace: CfopFace | 'best' = 'D', be
   if (!centersSolved(state) || !allPaired(state)) throw new Error('reduction incomplete (unexpected)')
 
   // ── Stage 3: parity probe + 3x3 solution ──
+  reportProgress('Checking parity and solving the 3×3 stage')
   let moves3: string[] | null = null
   for (const fixes of PARITY_COMBOS) {
     let trial = state

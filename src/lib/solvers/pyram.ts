@@ -13,6 +13,7 @@
 // piece-indexed codes. Distances are identical.
 
 import rawMoves from './data/pyraminx_moves.json'
+import { reportProgress } from './progress'
 import { bfsTable, rankPerm, unrankPerm } from './perm'
 
 type Orbit = { permutation: number[]; orientationDelta: number[] }
@@ -92,6 +93,7 @@ function applyMove(idx: number, mi: number): number {
 
 export function getTable(): Uint8Array {
   if (DIST) return DIST
+  reportProgress('Building the Pyraminx table · 933k positions')
   buildMoveTables()
   DIST = bfsTable(N_PERM * N_FLIP * N_TW, [0], CORE_MOVES.length, applyMove)
   return DIST

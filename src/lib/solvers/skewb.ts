@@ -15,6 +15,7 @@
 // entries (3MB).
 
 import rawMoves from './data/skewb_moves.json'
+import { reportProgress } from './progress'
 import { bfsTable, rankPerm, unrankPerm } from './perm'
 
 type Orbit = { permutation: number[]; orientationDelta: number[] }
@@ -108,6 +109,7 @@ function applyMove(idx: number, mi: number): number {
 
 export function getTable(): Uint8Array {
   if (DIST) return DIST
+  reportProgress('Building the Skewb table · 3.15M positions')
   buildMoveTables()
   const size = 360 * N_CORNER
   if (size !== N_REACHABLE) throw new Error(`skewb index size ${size} != ${N_REACHABLE}`)

@@ -3,6 +3,7 @@
 
 import type { WorkerRequest, WorkerResponse } from './protocol'
 import { HANDLERS } from './handlers'
+import { setProgressSink } from './progress'
 
 const ctx = self as unknown as {
   postMessage: (msg: WorkerResponse) => void
@@ -11,11 +12,14 @@ const ctx = self as unknown as {
 
 ctx.onmessage = e => {
   const { id, endpoint, body } = e.data
+  setProgressSink(progress => ctx.postMessage({ id, progress }))
   try {
     const handler = HANDLERS[endpoint]
     if (!handler) throw new Error(`No local solver for ${endpoint}`)
     ctx.postMessage({ id, ok: true, result: handler(body) })
   } catch (err) {
     ctx.postMessage({ id, ok: false, message: err instanceof Error ? err.message : String(err) })
+  } finally {
+    setProgressSink(null)
   }
 }

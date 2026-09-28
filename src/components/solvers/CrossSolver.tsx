@@ -1,10 +1,10 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
-import { RefreshCw, Copy, Check, Play } from 'lucide-react'
+import { Copy, Check, Play } from 'lucide-react'
 import { useCubiqStore } from '@/store'
 import { solveAllCrosses } from '@/lib/solver'
 import { localSolve } from '@/lib/solvers/client'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { CubePlayer } from '@/components/lab/CubePlayer'
 import type { CrossSolution } from '@/types'
 
 const FACE_COLORS: Record<string, string> = {
@@ -17,12 +17,7 @@ const FACE_COLORS: Record<string, string> = {
 }
 
 const FACE_BG: Record<string, string> = {
-  D: 'rgba(255,213,0,0.12)',
-  U: 'rgba(255,255,255,0.08)',
-  F: 'rgba(0,155,72,0.12)',
-  B: 'rgba(0,70,173,0.12)',
-  R: 'rgba(185,0,0,0.12)',
-  L: 'rgba(255,88,0,0.12)',
+  D: 'var(--raised)', U: 'var(--raised)', F: 'var(--raised)', B: 'var(--raised)', R: 'var(--raised)', L: 'var(--raised)',
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -327,32 +322,6 @@ export function CrossSolver({ scramble }: { scramble?: string } = {}) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold font-display" style={{ color: 'var(--text-primary)' }}>
-            Cross Solver
-          </h2>
-          {lastSolvedScramble && (
-            <p className="text-xs mt-0.5 font-mono break-all" style={{ color: 'var(--text-muted)' }}>
-              {lastSolvedScramble}
-            </p>
-          )}
-        </div>
-        <button
-          onClick={() => solve(currentScramble)}
-          disabled={loading || !currentScramble}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-colors"
-          style={{
-            background: 'var(--bg-elevated)',
-            color: loading ? 'var(--text-muted)' : 'var(--accent-primary)',
-          }}
-        >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          {loading ? 'Solving…' : 'Solve'}
-        </button>
-      </div>
-
       {error && (
         <p className="text-sm px-3 py-2 rounded-xl" style={{ background: 'var(--accent-danger)15', color: 'var(--accent-danger)' }}>
           {error}
@@ -389,24 +358,15 @@ export function CrossSolver({ scramble }: { scramble?: string } = {}) {
 
       {/* Animated cube preview — scramble is pre-applied, only the solution plays */}
       {anim && (
-        <GlassCard className="mt-2">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-display" style={{ color: 'var(--text-muted)' }}>
-              Solution animation
-            </p>
-            <button
-              onClick={() => setAnim(null)}
-              className="text-xs px-2 py-0.5 rounded"
-              style={{ color: 'var(--text-muted)', background: 'var(--bg-elevated)' }}
-            >
-              Close
-            </button>
+        <div className="card p-3 md:p-4 flex flex-col gap-2 mt-1">
+          <div className="flex items-center justify-between">
+            <span className="label">Solution</span>
+            <button onClick={() => setAnim(null)} className="btn btn-ghost btn-sm">Close</button>
           </div>
-          <AnimatedCube setup={anim.setup} alg={anim.alg} />
-        </GlassCard>
+          <CubePlayer puzzle="3x3x3" setup={anim.setup} alg={anim.alg} height={240} />
+        </div>
       )}
     </div>
   )
 }
 
-import { AnimatedCube } from '@/components/solvers/AnimatedCube'

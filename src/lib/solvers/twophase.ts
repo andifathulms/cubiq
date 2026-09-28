@@ -4,6 +4,7 @@
 
 import { FACES, fromScramble, makeCube, standardLayers } from './cubeN'
 import { initialize, solvePattern } from './vendor/min2phase'
+import { reportProgress } from './progress'
 
 let ready = false
 
@@ -12,6 +13,7 @@ let ready = false
  *  kociemba.solve() rejected. */
 export function solve3x3Facelet(facelet: string): string[] | null {
   if (!ready) {
+    reportProgress('Preparing the two-phase tables')
     initialize()
     ready = true
   }

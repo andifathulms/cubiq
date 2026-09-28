@@ -15,6 +15,7 @@ import {
   type F2LState,
 } from './f2l'
 import { applyFull, fullFromScramble, solveOll, solvePll } from './lastlayer'
+import { reportProgress } from './progress'
 
 export const FACES = ['D', 'U', 'F', 'B', 'R', 'L'] as const
 export type CfopFace = (typeof FACES)[number]
@@ -278,7 +279,10 @@ export function solveCfopFace(scramble: string, face: CfopFace = 'D', opts: Cfop
 export function solveCfop(scramble: string, face: CfopFace | 'best' = 'D', opts: CfopOptions = {}): CfopResult {
   if (face !== 'best') return solveCfopFace(scramble, face, opts)
   const t0 = performance.now()
-  const results = FACES.map(f => solveCfopFace(scramble, f, { ...opts, tryDoubleXcross: false }))
+  const results = FACES.map((f, i) => {
+    reportProgress(`Trying the cross on ${f} · ${i + 1} of 6`)
+    return solveCfopFace(scramble, f, { ...opts, tryDoubleXcross: false })
+  })
   results.sort((a, b) => a.total_moves - b.total_moves)
   let best = results[0]
   if (opts.tryDoubleXcross) {

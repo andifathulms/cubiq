@@ -14,6 +14,7 @@
 // are independent, so the BFS is two lookups per edge. Same distances.
 
 import { CORNER_TRANS, MOVE_INDEX } from './cube3'
+import { reportProgress } from './progress'
 import { bfsTable, rankPerm, unrankPerm } from './perm'
 
 const FIXED_SLOT = 6                          // DBL — never moved by U/R/F
@@ -89,6 +90,7 @@ const applyMove = (idx: number, mi: number) =>
 
 export function getTable(): Uint8Array {
   if (DIST) return DIST
+  reportProgress('Building the 2×2 table · 3.67M positions')
   buildMoveTables()
   DIST = bfsTable(N_STATES, [0], MOVES_222.length, applyMove)
   return DIST

@@ -19,6 +19,7 @@ import {
   ALL_MOVES, CORNER_SLOTS, CORNER_TRANS, EDGE_TRANS, MOVE_FACE, MOVE_INDEX, scrambleToSubstates,
 } from './cube3'
 import { crossMoveTable, encodeCross, N_CROSS } from './cross'
+import { reportProgress } from './progress'
 
 export const D_CROSS_EDGES = [4, 5, 6, 7]
 export const D_CROSS_SOLVED = encodeCross(D_CROSS_EDGES.map(e => e * 2))
@@ -170,8 +171,11 @@ export function getPieceTable(kind: 'corner' | 'edge', index: number): Uint8Arra
 export function warmTables(): void {
   if (PIECE_TABLES.size === 8) return
   const [fc, fe] = PAIR_LIST[0]
+  reportProgress('Preparing F2L tables · 1 of 2')
   const baseC = bfsPieceTable(CORNER_TRANS, fc * 3)
+  reportProgress('Preparing F2L tables · 2 of 2')
   const baseE = bfsPieceTable(EDGE_TRANS, fe * 2)
+  reportProgress('Mirroring F2L tables for the other pairs')
   PIECE_TABLES.set(`corner${fc}`, baseC)
   PIECE_TABLES.set(`edge${fe}`, baseE)
   for (const conj of conjugations()) {

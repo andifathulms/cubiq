@@ -18,3 +18,4 @@ export type WorkerRequest = { id: number; endpoint: SolverEndpoint; body: Record
 export type WorkerResponse =
   | { id: number; ok: true; result: unknown }
   | { id: number; ok: false; message: string }
+  | { id: number; progress: string }

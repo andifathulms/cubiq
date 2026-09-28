@@ -17,6 +17,7 @@
 import tables from './data/sq1_tables.json'
 import { rankPerm } from './perm'
 import { PyRandom } from './pyrandom'
+import { reportProgress } from './progress'
 
 type Token = ['twist', number, number] | ['slash', 0, 0]
 type W = number[]
@@ -258,6 +259,7 @@ export function solveSq1(scramble: string) {
   const t0 = performance.now()
   let [w, eq] = applyTokens(SOLVED, 0, parseScramble(scramble))
 
+  reportProgress('Finding the shortest route to cube shape')
   let shapeToks = solveShape(w)
   if (!shapeToks) throw new Error('square-1 shape stage failed')
   ;[w, eq] = applyTokens(w, eq, shapeToks)
@@ -277,6 +279,7 @@ export function solveSq1(scramble: string) {
     { name: 'cube shape', kind: 'shape', moves: shapeToks.map(tokenStr) },
   ]
 
+  reportProgress('Solving the pieces')
   const pieceToks = solvePieces(w, eq)
   if (!pieceToks) throw new Error('square-1 pieces stage failed')
   ;[w, eq] = applyTokens(w, eq, pieceToks)
