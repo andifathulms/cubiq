@@ -72,25 +72,41 @@ export function StagedResult({ puzzle, twisty, scramble, result }: {
         <CopyButton text={result.solution} label="Copy solution" />
       </div>
 
-      {showBar && (
-        <div className="flex h-8 rounded-lg overflow-hidden gap-[2px]" role="img" aria-label={`Moves per stage: ${result.stages.map(s => `${s.name} ${s.count}`).join(', ')}`}>
-          {result.stages.map((s, i) => (
-            <button
-              key={i} type="button" title={`${s.name} · ${s.count} ${result.unit}`}
-              onClick={() => setMode({ stage: i })}
-              className="num text-[10px] font-semibold grid place-items-center min-w-0 overflow-hidden transition-opacity hover:opacity-90"
-              style={{
-                flex: Math.max(1, s.count), background: KIND_COLOR[s.kind] ?? 'var(--line-strong)',
-                color: DARK_TEXT.has(s.kind) ? '#0E1014' : '#fff',
-                outline: current === i ? '2px solid var(--ink)' : undefined, outlineOffset: -2,
-                opacity: current !== null && current !== i ? 0.55 : 1,
-              }}
-            >
-              {Math.max(1, s.count) / totalCount > 0.04 ? s.count : ''}
-            </button>
-          ))}
+      {/* Bar + player stay in view while the stage list scrolls underneath */}
+      <div className="md:sticky md:top-0 z-10 -mx-4 md:-mx-5 px-4 md:px-5 pt-2 pb-3 bg-surface border-b border-line flex flex-col gap-3">
+        {showBar && (
+          <div className="flex h-8 rounded-lg overflow-hidden gap-[2px]" role="img" aria-label={`Moves per stage: ${result.stages.map(s => `${s.name} ${s.count}`).join(', ')}`}>
+            {result.stages.map((s, i) => (
+              <button
+                key={i} type="button" title={`${s.name} · ${s.count} ${result.unit}`}
+                onClick={() => setMode({ stage: i })}
+                className="num text-[10px] font-semibold grid place-items-center min-w-0 overflow-hidden transition-opacity hover:opacity-90"
+                style={{
+                  flex: Math.max(1, s.count), background: KIND_COLOR[s.kind] ?? 'var(--line-strong)',
+                  color: DARK_TEXT.has(s.kind) ? '#0E1014' : '#fff',
+                  outline: current === i ? '2px solid var(--ink)' : undefined, outlineOffset: -2,
+                  opacity: current !== null && current !== i ? 0.55 : 1,
+                }}
+              >
+                {Math.max(1, s.count) / totalCount > 0.04 ? s.count : ''}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="flex items-center justify-between gap-2">
+          <span className="label truncate">
+            {mode.stage === null
+              ? current !== null ? `Whole solution · now: ${result.stages[current].name}` : 'Whole solution'
+              : `Stage · ${result.stages[mode.stage].name}`}
+          </span>
+          {puzzle === 'sq1' && (
+            <Segmented label="Square-1 view" value={sq1View} onChange={setSq1View} options={[{ value: '3d', label: '3D' }, { value: 'disc', label: 'Top & bottom' }]} />
+          )}
         </div>
-      )}
+        {puzzle === 'sq1'
+          ? (sq1View === '3d' ? <Sq1View3D key={setup + alg} setup={setup} alg={alg} height={220} /> : <Sq1AnimatedView key={setup + alg} setup={setup} alg={alg} height={200} />)
+          : <CubePlayer puzzle={twisty} setup={setup} alg={alg} onMove={onMove} height={230} />}
+      </div>
 
       <ol className="flex flex-col gap-1.5">
         {result.stages.map((s, i) => (
@@ -123,18 +139,6 @@ export function StagedResult({ puzzle, twisty, scramble, result }: {
           ))}
         </div>
       )}
-
-      <div className="card p-3 md:p-4 flex flex-col gap-2">
-        <div className="flex items-center justify-between gap-2">
-          <span className="label">{mode.stage === null ? 'Whole solution' : `Stage · ${result.stages[mode.stage].name}`}</span>
-          {puzzle === 'sq1' && (
-            <Segmented label="Square-1 view" value={sq1View} onChange={setSq1View} options={[{ value: '3d', label: '3D' }, { value: 'disc', label: 'Top & bottom' }]} />
-          )}
-        </div>
-        {puzzle === 'sq1'
-          ? (sq1View === '3d' ? <Sq1View3D key={setup + alg} setup={setup} alg={alg} /> : <Sq1AnimatedView key={setup + alg} setup={setup} alg={alg} />)
-          : <CubePlayer puzzle={twisty} setup={setup} alg={alg} onMove={onMove} />}
-      </div>
     </div>
   )
 }

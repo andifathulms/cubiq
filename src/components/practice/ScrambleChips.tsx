@@ -27,12 +27,12 @@ export function ScrambleChips({ scramble, puzzle, size = 'md', align = 'center' 
       aria-label={`Scramble: ${scramble}`}
     >
       {groups.map((g, gi) => (
-        <span key={gi} className="flex gap-1">
+        <span key={gi} className="flex flex-wrap gap-1 max-w-full">
           {g.map((t, i) => (
             <span
               key={i}
               aria-hidden
-              className={`num font-semibold leading-none text-center rounded-[7px] bg-surface text-ink border border-line ${chip}`}
+              className={`num font-semibold leading-none text-center whitespace-nowrap rounded-[7px] bg-surface text-ink border border-line ${chip}`}
               style={{ borderBottom: `3px solid ${t.face ? `var(--st-${t.face})` : 'var(--line-strong)'}` }}
             >
               {t.text}
