@@ -5,6 +5,7 @@ import { exportToJSON, importFromJSON } from '@/lib/export'
 import { generateScramble } from '@/lib/cubing'
 import { pushScrambleHistory } from '@/lib/storage'
 import type { Session, Solve, Settings, TimerState, SessionStats } from '@/types'
+import { schedule, type CardState, type Grade } from '@/lib/learn'
 
 const DEFAULT_SETTINGS: Settings = {
   inspection_enabled: false,
@@ -36,6 +37,10 @@ interface CubiqStore {
   currentTime: number
   inspectionTime: number
   currentScramble: string
+  /** Learn: spaced-repetition state per case key ('pll:T', 'oll:27') */
+  training: Record<string, CardState>
+  /** Learn: cross-planning self-grades */
+  crossStats: { optimal: number; close: number; missed: number }
 
   getActiveSession: () => Session | undefined
   getStats: () => SessionStats
@@ -60,6 +65,10 @@ interface CubiqStore {
 
   updateSettings: (update: Partial<Settings>) => void
 
+  gradeCase: (key: string, grade: Grade, timing: { recogMs?: number; execMs?: number }) => void
+  resetTraining: (keyPrefix: string) => void
+  recordCross: (result: 'optimal' | 'close' | 'missed') => void
+
   exportData: () => void
   importData: (json: string, mode: 'merge' | 'replace') => void
 }
@@ -76,6 +85,8 @@ export const useCubiqStore = create<CubiqStore>()(
       currentTime: 0,
       inspectionTime: 15,
       currentScramble: '',
+      training: {},
+      crossStats: { optimal: 0, close: 0, missed: 0 },
 
       getActiveSession: () => {
         const { sessions, activeSessionId } = get()
@@ -196,6 +207,21 @@ export const useCubiqStore = create<CubiqStore>()(
       updateSettings: update =>
         set(state => ({ settings: { ...state.settings, ...update } })),
 
+      gradeCase: (key, grade, timing) =>
+        set(state => {
+          const next = schedule(state.training[key], grade)
+          const keep = (xs: number[] | undefined, v: number | undefined) => (v === undefined ? xs : [...(xs ?? []), v].slice(-10))
+          next.recogMs = keep(next.recogMs, timing.recogMs)
+          next.execMs = keep(next.execMs, timing.execMs)
+          return { training: { ...state.training, [key]: next } }
+        }),
+
+      resetTraining: keyPrefix =>
+        set(state => ({ training: Object.fromEntries(Object.entries(state.training).filter(([k]) => !k.startsWith(keyPrefix))) })),
+
+      recordCross: result =>
+        set(state => ({ crossStats: { ...state.crossStats, [result]: state.crossStats[result] + 1 } })),
+
       exportData: () => {
         exportToJSON(get().sessions)
       },
@@ -217,6 +243,8 @@ export const useCubiqStore = create<CubiqStore>()(
         sessions: state.sessions,
         activeSessionId: state.activeSessionId,
         settings: state.settings,
+        training: state.training,
+        crossStats: state.crossStats,
       }),
       // Settings gain fields over time: fill in defaults for anything an
       // older saved state doesn't have (the default merge is shallow).

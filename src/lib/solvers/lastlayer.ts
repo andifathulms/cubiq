@@ -125,7 +125,7 @@ export function expandAlg(alg: string): string[] {
 
 // ── Alg databases (standard speedsolving algs) ────────────────────────────────
 
-const OLL_ALGS: Record<string, string> = {
+export const OLL_ALGS: Record<string, string> = {
   'OLL 1':  "R U2 R2 F R F' U2 R' F R F'",
   'OLL 2':  "F R U R' U' F' f R U R' U' f'",
   'OLL 3':  "f R U R' U' f' U' F R U R' U' F'",
@@ -185,7 +185,7 @@ const OLL_ALGS: Record<string, string> = {
   'OLL 57': "R U R' U' M' U R U' r'",
 }
 
-const PLL_ALGS: Record<string, string> = {
+export const PLL_ALGS: Record<string, string> = {
   Aa: "x R' U R' D2 R U' R' D2 R2 x'",
   Ab: "x R2 D2 R U R' D2 R U' R x'",
   E:  "x' R U' R' D R U R' D' R U R' D R U' R' D' x",

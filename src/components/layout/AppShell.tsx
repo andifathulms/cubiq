@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Timer, TrendingUp, Box, Settings } from 'lucide-react'
+import { Timer, TrendingUp, Box, BookOpen, Settings } from 'lucide-react'
 import { Logo } from '@/components/ui/Logo'
 import { Modal } from '@/components/ui/Modal'
 import { SettingsPanel } from '@/components/session/SettingsPanel'
@@ -12,6 +12,7 @@ export const NAV = [
   { href: '/', icon: Timer, label: 'Practice' },
   { href: '/progress', icon: TrendingUp, label: 'Progress' },
   { href: '/lab', icon: Box, label: 'Solve Lab' },
+  { href: '/learn', icon: BookOpen, label: 'Learn' },
 ] as const
 
 function useActivePath() {

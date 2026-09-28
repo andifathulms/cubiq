@@ -21,13 +21,15 @@ const SPEEDS = [0.5, 1, 2, 4]
 /** cubing.js TwistyPlayer with our own controls (its control bar is hidden):
  *  restart, play/pause, end, scrub, speed. Reports the index of the move
  *  being played so the caller can highlight the current stage. */
-export function CubePlayer({ puzzle, setup, alg, height = 280, autoplay = true, onMove }: {
+export function CubePlayer({ puzzle, setup, alg, height = 280, autoplay = true, onMove, stickering }: {
   puzzle: string
   setup: string
   alg: string
   height?: number
   autoplay?: boolean
   onMove?: (patternIndex: number) => void
+  /** cubing.js stickering mask, e.g. 'PLL' or 'OLL' to grey out the rest */
+  stickering?: string
 }) {
   const box = useRef<HTMLDivElement>(null)
   const player = useRef<TwistyEl | null>(null)
@@ -52,6 +54,7 @@ export function CubePlayer({ puzzle, setup, alg, height = 280, autoplay = true, 
       p.setAttribute('background', 'none')
       p.setAttribute('control-panel', 'none')
       p.setAttribute('tempo-scale', String(speed))
+      if (stickering) p.setAttribute('experimental-stickering', stickering)
       p.style.width = '100%'
       p.style.height = `${height}px`
       box.current.appendChild(p)
@@ -75,7 +78,7 @@ export function CubePlayer({ puzzle, setup, alg, height = 280, autoplay = true, 
     return () => { disposed = true; cleanup() }
     // speed is applied live below; remounting on it would restart playback
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [puzzle, setup, alg, height, autoplay])
+  }, [puzzle, setup, alg, height, autoplay, stickering])
 
   const setTempo = (v: number) => {
     setSpeed(v)
