@@ -128,6 +128,9 @@ export function makeCube(N: number, layers: Record<string, LayerSpec>, wide: boo
     for (const f of FACES) {
       for (const suffix of ['', '2', "'"]) {
         moves.set(f + 'w' + suffix, compose(moves.get('2' + f + suffix)!, moves.get(f + suffix)!))
+        // three-layer wide (6x6 and up): 3Rw = R + 2R + 3R
+        const third = moves.get('3' + f + suffix)
+        if (N >= 6 && third) moves.set('3' + f + 'w' + suffix, compose(third, moves.get(f + 'w' + suffix)!))
       }
     }
   }
