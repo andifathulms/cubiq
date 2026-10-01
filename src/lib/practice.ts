@@ -9,6 +9,7 @@ export const PUZZLES: { id: string; label: string; short: string }[] = [
   { id: '222', label: '2×2', short: '2×2' },
   { id: '444', label: '4×4', short: '4×4' },
   { id: '555', label: '5×5', short: '5×5' },
+  { id: '666', label: '6×6', short: '6×6' },
   { id: 'pyram', label: 'Pyraminx', short: 'Pyra' },
   { id: 'skewb', label: 'Skewb', short: 'Skewb' },
   { id: 'minx', label: 'Megaminx', short: 'Mega' },
@@ -16,7 +17,7 @@ export const PUZZLES: { id: string; label: string; short: string }[] = [
 ]
 export const PUZZLE_LABEL: Record<string, string> = Object.fromEntries(PUZZLES.map(p => [p.id, p.label]))
 
-const CUBES = new Set(['222', '333', '444', '555'])
+const CUBES = new Set(['222', '333', '444', '555', '666'])
 
 export interface ScrambleToken {
   text: string

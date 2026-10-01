@@ -46,6 +46,23 @@ const CONFIGS: Record<string, MoveConfig> = {
       R: 2, L: 2, Rw: 2, Lw: 2,
     },
   },
+  // WCA 6x6 (TNoodle): outer and two-layer wide turns on every face, plus
+  // three-layer wide turns on U, R and F; 80 moves
+  '666': {
+    moves: [
+      'U', "U'", 'U2', 'D', "D'", 'D2', 'F', "F'", 'F2', 'B', "B'", 'B2', 'R', "R'", 'R2', 'L', "L'", 'L2',
+      'Uw', "Uw'", 'Uw2', 'Dw', "Dw'", 'Dw2',
+      'Fw', "Fw'", 'Fw2', 'Bw', "Bw'", 'Bw2',
+      'Rw', "Rw'", 'Rw2', 'Lw', "Lw'", 'Lw2',
+      '3Uw', "3Uw'", '3Uw2', '3Fw', "3Fw'", '3Fw2', '3Rw', "3Rw'", '3Rw2',
+    ],
+    length: 80,
+    axis: {
+      U: 0, D: 0, Uw: 0, Dw: 0, '3Uw': 0,
+      F: 1, B: 1, Fw: 1, Bw: 1, '3Fw': 1,
+      R: 2, L: 2, Rw: 2, Lw: 2, '3Rw': 2,
+    },
+  },
   'pyram': {
     moves: ['U', "U'", 'R', "R'", 'L', "L'", 'B', "B'"],
     length: 11,
@@ -64,6 +81,7 @@ export const TWISTY_PUZZLE_IDS: Record<string, string> = {
   '333': '3x3x3',
   '444': '4x4x4',
   '555': '5x5x5',
+  '666': '6x6x6',
   'pyram': 'pyraminx',
   'skewb': 'skewb',
   'minx': 'megaminx',
