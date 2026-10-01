@@ -21,7 +21,7 @@ Four sections, each answering one question, in a "Stackmat" design: graphite (da
   |---|---|
   | 3x3 | Staged CFOP (cross / x-cross / F2L / OLL / PLL) with move cancellation; optimal cross and x-cross for every colour; Kociemba two-phase (min2phase) |
   | 2x2, Pyraminx, Skewb | Fully precomputed God's-algorithm tables — provably optimal, ≤ 11 moves |
-  | 4x4, 5x5 | Reduction pipeline: centers → edge/wing pairing → parity → 3x3 CFOP finish |
+  | 4x4, 5x5, 6x6 | Reduction pipeline: centers → edge/wing pairing → parity → 3x3 CFOP finish |
   | Megaminx | Layer-by-layer placement with a commutator last-layer macro library |
   | Square-1 | Two-phase shape BFS + exact piece descent, with a custom solid-shell 3D animation |
 - **Learn** — *what should I drill?* A spaced-repetition trainer for the 21 PLL and 57 OLL cases (diagrams generated from the solver's algorithms; recognition and execution timing; mastery grid) and a cross-planning drill against the optimal cross
@@ -30,7 +30,7 @@ Four sections, each answering one question, in a "Stackmat" design: graphite (da
 ---|---|
   | 3x3 | Staged CFOP (cross / x-cross / F2L / OLL / PLL) with move-cancelling stitching, plus a Kociemba two-phase (min2phase) comparison |
   | 2x2, Pyraminx, Skewb | Fully precomputed God's-algorithm tables — provably optimal, ≤ 11 moves |
-  | 4x4, 5x5 | Reduction pipeline: centers → edge/wing pairing → parity → 3x3 CFOP finish |
+  | 4x4, 5x5, 6x6 | Reduction pipeline: centers → edge/wing pairing → parity → 3x3 CFOP finish |
   | Megaminx | Layer-by-layer placement with a commutator last-layer macro library |
   | Square-1 | Two-phase shape BFS + exact piece descent, with a custom solid-shell 3D animation |
 - **Research (MDP, needs `cubiq-ml` running locally)** — trigger self-play RL training (Autodidactic Iteration) from the browser, watch live loss/solve-rate charts, inspect the policy distribution for a scramble, and compare a greedy/MCTS solve against Kociemba optimal

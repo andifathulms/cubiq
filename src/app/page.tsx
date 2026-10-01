@@ -18,7 +18,7 @@ import { useCubiqStore } from '@/store'
 import { moveCount, PUZZLE_LABEL, recordsOfLast } from '@/lib/practice'
 import type { Solve } from '@/types'
 
-const SOLVER_PUZZLES = new Set(['222', '333', '444', '555', 'pyram', 'skewb', 'minx', 'sq1'])
+const SOLVER_PUZZLES = new Set(['222', '333', '444', '555', '666', 'pyram', 'skewb', 'minx', 'sq1'])
 const NO_RECORDS = { single: false, ao5: false, ao12: false }
 
 export default function PracticePage() {
