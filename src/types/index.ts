@@ -1,6 +1,6 @@
 export type Penalty = null | '+2' | 'DNF'
 
-export type PuzzleType = '222' | '333' | '444' | '555' | '666' | 'pyram' | 'skewb' | 'minx' | 'sq1' | 'clock'
+export type PuzzleType = '222' | '333' | '444' | '555' | '666' | '777' | 'pyram' | 'skewb' | 'minx' | 'sq1' | 'clock'
 
 export interface Solve {
   id: string

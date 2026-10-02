@@ -1,13 +1,13 @@
 // Small recognisable puzzle marks (replace the emoji). Colours come from
 // the sticker tokens so they adapt to the theme.
 const COLORS: Record<string, string> = {
-  '333': 'var(--st-F)', '222': 'var(--st-L)', '444': 'var(--st-B)', '555': 'var(--st-R)', '666': 'var(--st-D)',
+  '333': 'var(--st-F)', '222': 'var(--st-L)', '444': 'var(--st-B)', '555': 'var(--st-R)', '666': 'var(--st-D)', '777': 'var(--st-B)',
   pyram: 'var(--st-D)', skewb: 'var(--st-U)', minx: 'var(--st-F)', sq1: 'var(--st-L)', clock: 'var(--st-B)',
 }
 
 export function PuzzleGlyph({ puzzle, size = 14 }: { puzzle: string; size?: number }) {
   const c = COLORS[puzzle] ?? 'var(--st-F)'
-  const n = { '222': 2, '333': 3, '444': 4, '555': 5, '666': 6 }[puzzle]
+  const n = { '222': 2, '333': 3, '444': 4, '555': 5, '666': 6, '777': 7 }[puzzle]
   let body: React.ReactNode
   if (n) {
     const s = 12 / n

@@ -63,6 +63,13 @@ const CONFIGS: Record<string, MoveConfig> = {
       R: 2, L: 2, Rw: 2, Lw: 2, '3Rw': 2,
     },
   },
+  // WCA 7x7 (TNoodle): outer, two-layer and three-layer wide turns on every
+  // face; 100 moves
+  '777': {
+    moves: ['U', 'D', 'F', 'B', 'R', 'L'].flatMap(f => [f, `${f}w`, `3${f}w`]).flatMap(m => [m, `${m}'`, `${m}2`]),
+    length: 100,
+    axis: Object.fromEntries(['U', 'D', 'F', 'B', 'R', 'L'].flatMap(f => [f, `${f}w`, `3${f}w`].map(m => [m, { U: 0, D: 0, F: 1, B: 1, R: 2, L: 2 }[f]!]))),
+  },
   'pyram': {
     moves: ['U', "U'", 'R', "R'", 'L', "L'", 'B', "B'"],
     length: 11,
@@ -82,6 +89,7 @@ export const TWISTY_PUZZLE_IDS: Record<string, string> = {
   '444': '4x4x4',
   '555': '5x5x5',
   '666': '6x6x6',
+  '777': '7x7x7',
   'pyram': 'pyraminx',
   'skewb': 'skewb',
   'minx': 'megaminx',
