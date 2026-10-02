@@ -13,6 +13,7 @@ export type SolverEndpoint =
   | '/solve/444'
   | '/solve/555'
   | '/solve/666'
+  | '/solve/777'
   | '/learn/xcross'   // Learn › Lessons: a scramble for an x-cross lesson
 
 export type WorkerRequest = { id: number; endpoint: SolverEndpoint; body: Record<string, unknown> }
